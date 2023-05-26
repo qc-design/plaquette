@@ -32,5 +32,9 @@ jobs:
         cache-dependency-path: 'requirements*.txt'
     - name: Install Python packages
       run: python3 -m pip install -r requirements_dev.txt -r requirements.txt
+    - name: Build plaquette
+      run: python3 -m build --wheel
+    - name: Install plaquette
+      run: pip install dist/plaquette*.whl
     - name: Run regression tests
-      run: python -m pytest -m slow
+      run: python -m pytest -n auto -m slow

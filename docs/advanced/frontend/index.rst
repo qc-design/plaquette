@@ -19,7 +19,7 @@ submodule in :mod:`~plaquette` the frontend contains a Config
    the circuit.
 3. :class:`.CircuitConfig` - Configuration metadata for making the circuit that
    will be simulated.
-4. :class:`.SimulatorConfig` - Configuration metadata for the simulator that will
+4. :class:`.DeviceConfig` - Configuration metadata for the simulator that will
    be used.
 5. :class:`.DecoderConfig` - Configuration metadata for the decoder that will be
    used.
@@ -34,12 +34,12 @@ In the rest of this tutorial, we will be using the config file:
 attempt to determine the thresholds under various situations for the
 RotatedPlanarCode. The following situations are done here.
 
-1. :math:`X,Z` Qubit Errors using the `StimSimulator` and `PyMatchingDecoder` decoder
+1. :math:`X,Z` Qubit Errors using the `Stim` backend and `PyMatchingDecoder` decoder
 2. :math:`X,Z` Qubit Errors with gate errors for :math:`H, CZ, CX` using the
-   `StimSimulator` and `PyMatchingDecoder` decoder.
-3. :math:`X,Z` Qubit Errors with measurement errors using the `StimSimulator` and
+   `Stim` backend and `PyMatchingDecoder` decoder.
+3. :math:`X,Z` Qubit Errors with measurement errors using the `Stim` backend and
    `PyMatchingDecoder` decoder.
-4. :math:`X,Z` Qubit Errors with erasure errors using the `StimSimulator` and
+4. :math:`X,Z` Qubit Errors with erasure errors using the `Stim` backend and
    `UnionFindDecoder`.
 
 Over the course of this guide, we will demonstrate the ease of use in which

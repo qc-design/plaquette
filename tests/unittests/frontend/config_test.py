@@ -7,10 +7,10 @@ from plaquette.frontend import (
     CircuitConfig,
     CodeConfig,
     DecoderConfig,
+    DeviceConfig,
     ExperimentConfig,
     GateErrorsConfig,
     QubitErrorsConfig,
-    SimulatorConfig,
     _GateErrorMetadata,
     _QubitErrorMetadata,
 )
@@ -930,73 +930,73 @@ def gate_error_config():
     }
 
 
-class TestSimulatorConfig:
-    """Tests for the class the SimulatorConfig."""
+class TestDeviceConfig:
+    """Tests for the class the DeviceConfig."""
 
     @pt.mark.parametrize(
         "input_dict, output_obj",
         [
             (
-                dict(name="CircuitSimulator", shots=1024),
-                SimulatorConfig(name="CircuitSimulator", shots=1024),
+                dict(name="clifford", shots=1024),
+                DeviceConfig(name="clifford", shots=1024),
             ),
             (
-                dict(name="CircuitSimulator", shots=1),
-                SimulatorConfig(name="CircuitSimulator", shots=1),
+                dict(name="clifford", shots=1),
+                DeviceConfig(name="clifford", shots=1),
             ),
             (
-                dict(name="StimSimulator", shots=1231245),
-                SimulatorConfig(name="StimSimulator", shots=1231245),
+                dict(name="stim", shots=1231245),
+                DeviceConfig(name="stim", shots=1231245),
             ),
         ],
     )
-    def test_from_dict(self, input_dict: dict, output_obj: SimulatorConfig) -> None:
-        assert SimulatorConfig.from_dict(input_dict) == output_obj
+    def test_from_dict(self, input_dict: dict, output_obj: DeviceConfig) -> None:
+        assert DeviceConfig.from_dict(input_dict) == output_obj
 
     @pt.mark.parametrize(
         "output_dict, input_obj",
         [
             (
-                dict(name="CircuitSimulator", shots=1),
-                SimulatorConfig(name="CircuitSimulator", shots=1),
+                dict(name="clifford", shots=1),
+                DeviceConfig(name="clifford", shots=1),
             ),
             (
-                dict(name="CircuitSimulator", shots=12),
-                SimulatorConfig(name="CircuitSimulator", shots=12),
+                dict(name="clifford", shots=12),
+                DeviceConfig(name="clifford", shots=12),
             ),
             (
-                dict(name="StimSimulator", shots=1289),
-                SimulatorConfig(name="StimSimulator", shots=1289),
+                dict(name="stim", shots=1289),
+                DeviceConfig(name="stim", shots=1289),
             ),
         ],
     )
-    def test_as_dict(self, input_obj: SimulatorConfig, output_dict: dict) -> None:
+    def test_as_dict(self, input_obj: DeviceConfig, output_dict: dict) -> None:
         assert input_obj.as_dict() == output_dict
 
     @pt.mark.parametrize(
         "input_dict, err_msg",
         [
             (
-                dict(name="CircuitSimulator", shots=-1),
-                "simulator.shots = -1 must be an integer",
+                dict(name="clifford", shots=-1),
+                "device.shots = -1 must be an integer",
             ),
             (
-                dict(name="CircuitSimulator", shots=13.3),
-                "simulator.shots = 13.3 must be an integer",
+                dict(name="clifford", shots=13.3),
+                "device.shots = 13.3 must be an integer",
             ),
             (
                 dict(name="CodespaceSimulator", shots=1),
-                "CodespaceSimulator is not a valid simulator name",
+                "CodespaceSimulator is not a valid device name",
             ),
             (
                 dict(name="stim-Simulator", shots=1),
-                "stim-Simulator is not a valid simulator name",
+                "stim-Simulator is not a valid device name",
             ),
         ],
     )
     def test_from_dict_failures(self, input_dict: dict, err_msg: str) -> None:
         with pt.raises(ValueError) as err:
-            SimulatorConfig.from_dict(input_dict)
+            DeviceConfig.from_dict(input_dict)
         assert str(err.value) == err_msg
 
 

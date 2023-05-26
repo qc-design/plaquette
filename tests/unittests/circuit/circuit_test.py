@@ -4,8 +4,8 @@ import numpy as np
 import pytest as pt
 
 import plaquette
+from plaquette import Device
 from plaquette.circuit import Circuit, CircuitBuilder
-from plaquette.simulator.circuitsim import CircuitSimulator
 
 
 def load_strings(file_path):
@@ -40,8 +40,9 @@ def test_circuit_error(params, result):
     """Test that circuit error continue/else works as expected."""
     plaquette.rng = np.random.default_rng(seed=94129232)
     circ = Circuit.from_str(circ_template.format(*params))
-    sim = CircuitSimulator(circ)
-    sim_res, unused_erasure = sim.get_sample()
+    dev = Device("clifford")
+    dev.run(circ)
+    sim_res, unused_erasure = dev.get_sample()
     sim_res2 = "".join(map(str, sim_res))
     assert sim_res2 == result
 

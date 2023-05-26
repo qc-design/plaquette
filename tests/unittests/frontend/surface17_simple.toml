@@ -1,5 +1,5 @@
-[simulator]
-name = "CircuitSimulator"
+[device]
+name = "clifford"
 shots = 1024
 
 [code]

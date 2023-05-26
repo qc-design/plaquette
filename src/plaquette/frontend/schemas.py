@@ -33,14 +33,14 @@ def get_exp_config_schema() -> dict:
                 },
                 "required": ["logical_op", "qec_property", "seed"]
             },
-            "simulator": {
+            "device": {
                 "type": "object",
                 "properties": {
                     "name": {
                         "type": "string",
                         "enum": [
-                        "StimSimulator",
-                        "CircuitSimulator"
+                        "stim",
+                        "clifford"
                         ]
                     },
                     "shots": {

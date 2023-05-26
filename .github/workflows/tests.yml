@@ -28,7 +28,11 @@ jobs:
     # requirements.txt, but it does not install any packages from it.
     - name: Install Python packages
       run: python3 -m pip install -r requirements_dev.txt -r requirements.txt
+    - name: Build plaquette
+      run: python3 -m build --wheel
+    - name: Install plaquette
+      run: pip install dist/plaquette*.whl
     - name: Run unit tests
-      run: python -m pytest -m "not slow"
+      run: python -m pytest -n auto -m "not slow"
 
 

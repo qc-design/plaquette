@@ -4,8 +4,8 @@ qec_property = ["logical_error_rate"] # The QEC property to measure, currently
                                       # only logical_error_rate is possible
 seed = 123124 # the seed for the random number generator
 
-[simulator]
-name = "StimSimulator" # The simulator to use,
+[device]
+name = "stim" # The device backend to use.
 shots = 10000 # the number of shots to run the simulator for
 
 [code]

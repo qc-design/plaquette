@@ -17,7 +17,7 @@ from plaquette.errors import (
 )
 from plaquette.pauli import commutator_sign
 
-# TODO: The code here is closer in functionality and concept to simulator.circuitsim
+# TODO: The code here is closer in functionality and concept to simulator._circuitsim
 
 
 class QECCircuitGenerator:
@@ -327,9 +327,9 @@ class QECCircuitGenerator:
         """Build circuit for simulating QEC on the given error model.
 
         This function returns a circuit which can be simulated (see
-        :mod:`plaquette.simulator`). If the circuit is simulated, it returns the
+        :mod:`plaquette.device`). If the circuit is simulated, it returns the
         sequence of measurement outcomes described in
-        :meth:`plaquette.simulator.AbstractSimulator.get_sample`.
+        :meth:`plaquette.device.AbstractSimulator.get_sample`.
 
         Args:
             logical_ops: Specifies which logical operators should be measured before
@@ -344,7 +344,7 @@ class QECCircuitGenerator:
                 :meth:`plaquette.codes.StabilizerCode.logical_ops_to_indices`.
 
         Returns:
-            A Clifford circuit (to be simulated with :mod:`plaquette.simulator`)
+            A Clifford circuit (to be simulated with :mod:`plaquette.device`)
         """
         logop_indices = self.stabcode.logical_ops_to_indices(logical_ops)
         # Check that different logical operators commute (if there is more than one).
@@ -384,10 +384,12 @@ def generate_qec_circuit(
     This function takes as input: An error correction code, information about errors
     and information about the logical operators of interest. Using this information,
     this function generates a circuit (as described in :ref:`circuits-ref`). This
-    circuit can then be simulated by :mod:`plaquette.simulator`.
+    circuit can then be simulated by :mod:`plaquette.device`.
 
     .. important:: This function doesn't actually simulate the circuit! That's
-       the simulator's job, e.g. :class:`.CircuitSimulator`.
+       the job of the device that uses an underlying backend to perform the
+       simulation, e.g. :class:`.CircuitSimulator` when choosing the
+       ``"clifford"`` backend.
 
     Args:
         code: Definition of the error correction code
@@ -407,7 +409,7 @@ def generate_qec_circuit(
             :meth:`plaquette.codes.StabilizerCode.logical_ops_to_indices`.
 
     Returns:
-        A Clifford circuit (to be simulated with :mod:`plaquette.simulator`)
+        A Clifford circuit (to be simulated with :mod:`plaquette.device`)
 
     This function is a shorthand for::
 
@@ -428,7 +430,7 @@ def generate_qec_circuit(
         >>> print(type(circ))
         <class 'plaquette.circuit.Circuit'>
 
-        The resulting circuit can be simulated using :mod:`plaquette.simulator`. The
+        The resulting circuit can be simulated using :mod:`plaquette.device`. The
         example above does not define any errors, see :mod:`plaquette.errors` for that
         matter.
     """

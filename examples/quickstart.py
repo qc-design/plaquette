@@ -1,4 +1,4 @@
-# %% Import necessary objects and functions
+# %% Import necessary objects and functions   # noqa: D100
 import numpy as np
 
 import plaquette
@@ -6,9 +6,8 @@ from plaquette.circuit.generator import generate_qec_circuit
 from plaquette.codes import LatticeCode
 from plaquette.decoders import UnionFindDecoder
 from plaquette.decoders.decoderbase import check_success
+from plaquette.device import Device, MeasurementSample
 from plaquette.errors import QubitErrorsDict
-from plaquette.simulator import SimulatorSample
-from plaquette.simulator.circuitsim import CircuitSimulator
 from plaquette.visualizer import LatticeVisualizer
 
 # %% Set fixed RNG seed, so we always get the same results
@@ -33,17 +32,18 @@ qed: QubitErrorsDict = {
 
 # %% You can automatically create a circuit from a code
 circuit = generate_qec_circuit(code, qed, {}, "Z")
-# %% and simulate it via one of the available simulators:
-# * `plaquette.simulator.circuitsim.CircuitSimulator`
-# * `plaquette.simulator.stimsim.StimSimulator`
-simulator = CircuitSimulator(circ=circuit)
+# %% and run it via a device using one of the available local backends:
+# * `clifford`
+# * `stim`
+dev = Device("clifford")
+dev.run(circuit)
 
-# %% The simulator can *sample* the circuit by returning the outcomes of all
+# %% The device can *sample* the circuit by returning the outcomes of all
 # the measurement gates and erasure gates you define.
-raw_results, erasure = simulator.get_sample()
+raw_results, erasure = dev.get_sample()
 
 # %% which can be unpacked into a more comfortable object
-sample = SimulatorSample.from_code_and_raw_results(code, raw_results, erasure)
+sample = MeasurementSample.from_code_and_raw_results(code, raw_results, erasure)
 
 # %% We can now **decode** the measurement results and check whether we can
 # correct the errors that have appeared
@@ -61,9 +61,10 @@ fig = visualizer.draw_latticedata(
 # %% And finally, you can calculate the logical error rate
 successes = 0
 reps = 1000
-for i in range(1000):
-    raw, erasure = simulator.get_sample()
-    results = SimulatorSample.from_code_and_raw_results(code, raw, erasure)
+for _ in range(1000):
+    dev.run(circuit)
+    raw, erasure = dev.get_sample()
+    results = MeasurementSample.from_code_and_raw_results(code, raw, erasure)
     correction = decoder.decode(results.erased_qubits, results.syndrome)
     if check_success(code, [correction], results.logical_op_toggle, "Z"):
         successes += 1

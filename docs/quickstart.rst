@@ -334,7 +334,7 @@ farily big!) is displayed below, just to give you an idea.
 
    Since we currently rely on the ``plaquette`` > ``OpenQASM 3.0`` > ``qiskit``
    loop to render a circuit, not *all* circuits supported by ``plaquette``
-   simulators can be drawn. In particular, any circuit with "error
+   devices can be drawn. In particular, any circuit with "error
    instructions" cannot be converted to OpenQASM, hence it cannot be
    visualised. This is why in the above snippet we **did not** use the
    ``circuit`` we had already, but we prepared a new one with an empty error
@@ -347,53 +347,72 @@ Simulating the generated circuit
 because ``plaquette`` has different backends to run a circuit which you can
 choose from.
 
-Right now, you have two options to run your circuit.
+To run a circuit, a device has to be created by specifying a backend. Right
+now, you have two options to run your circuit locally.
 
-:class:`.CircuitSimulator`
-   which is a simple, hackable tableau-based simulator for Clifford
-   circuits that trades speed for simplicity.
+``"clifford"``
+   which is a simple, hackable tableau-based simulator for Clifford circuits
+   that trades speed for simplicity.
 
-:class:`.StimSimulator`
+
+``"stim"``
    an interface for the well-known `Stim`_ simulator, with much better
-   performance. This interface class will make sure that the circuit you
-   define in ``plaquette`` can be simulated by Stim by translating
-   ``plaquette``'s own circuit format to Stim's.
+   performance. This interface class will make sure that the circuit you define
+   in ``plaquette`` can be simulated by Stim by translating ``plaquette``'s own
+   circuit format to Stim's.
 
 .. _Stim: https://github.com/quantumlib/Stim
 
-Since we are dealing with a rather small circuit, we will be using
-:class:`~.CircuitSimulator` here. You can initialise it by feeding it your
-already-defined ``circuit`` and then ask for a measurement sample (or shot in
-other parts of the literature).
+Since we are dealing with a rather small circuit, we will select ``"clifford"``
+as the backend here. You can create a device by specifying this backend and
+then feeding your already-defined ``circuit`` into the ``run`` method of the
+device. After running the quantum circuit you can ask for a measurement sample
+(or shot in other parts of the literature).
 
->>> from plaquette.simulator.circuitsim import CircuitSimulator
->>> simulator = CircuitSimulator(circ=circuit)
->>> raw_results, erasure = simulator.get_sample()
+>>> from plaquette import Device
+>>> device = Device("clifford")
+>>> device.run(circuit)
+>>> raw_results, erasure = device.get_sample()
 >>> raw_results.shape
 (56,)
 >>> erasure.shape
 (25,)
 
-.. hint:: :class:`.CircuitSimulator` (but not :class:`.StimSimulator`) can be
-   used as a Python iterator like this::
+.. hint::
 
-      for step in simulator:
-          # print(simulator.state)
-          # do stuff with simulator.state
+   A device created using the ``"clifford"`` backend (but not ``"stim"`` or
+   other backends) can be used as a Python iterator and supports querying the
+   quantum state like this::
 
-``raw_results`` holds all single measurement outcomes that the simulator
+      for _ in device:  # each step does not return anything on its own
+          # print(device.state)
+          # do stuff with device.state
+      m, e = device.get_sample()
+
+``raw_results`` holds all single measurement outcomes that the device
 obtained while running through the circuit. It contains both measurements
 related to the stabilisers themselves, state preparation, and logical
 operators.
 
-Since we didn't manually make this circuit but rather it was generated from
+.. caution::
+
+   Drawing a single sample will make the device run through the entire
+   circuit without stopping and will keep accumulating measurement results
+   such that, at each new sample, ``raw_results`` and ``erasure`` will have
+   *all* results from all samples, and the internal quantum state will be
+   whatever it was after the previous circuit finished running. If you want to
+   generate many samples starting always from a clean state, you can call
+   ``device.get_sample(after_reset=True)`` instead. This will reset the
+   corresponding internal attributes of local backends used.
+
+Since we didn't manually make this circuit, but rather it was generated from
 a code, we make sense of the single values in this array by "unpacking it"
-with the help of :meth:`.SimulatorSample.from_code_and_raw_results`.
+with the help of :meth:`.MeasurementSample.from_code_and_raw_results`.
 
->>> from plaquette.simulator import SimulatorSample
->>> sample = SimulatorSample.from_code_and_raw_results(code, raw_results, erasure)
+>>> from plaquette.device import MeasurementSample
+>>> sample = MeasurementSample.from_code_and_raw_results(code, raw_results, erasure)
 
-The :class:`.SimulatorSample` object contains a wealth of information about our
+The :class:`.MeasurementSample` object contains a wealth of information about our
 simulation shot. In particular, it contains the necessary data that are
 necessary for *decoding* the errors that might have happened while our circuit
 was running.
@@ -406,7 +425,7 @@ anything, and simply taking the results from the simulation at face value.
 This is where the "second half" of ``plaquette`` comes into play: its decoders.
 
 Given the chosen :class:`.LatticeCode`, its error models, and the obtained
-:class:`.SimulatorSample` you can now feed all these information to one of the
+:class:`.MeasurementSample` you can now feed all these information to one of the
 decoders implemented or supported by ``plaquette``.
 
 ``plaquette`` tries to abstract away the differences between the various
@@ -487,8 +506,9 @@ error rate*.
 >>> successes = 0
 >>> reps = 1000
 >>> for i in range(reps):
-...     raw, erasure = simulator.get_sample()
-...     results = SimulatorSample.from_code_and_raw_results(code, raw, erasure)
+...     device.run(circuit)
+...     raw, erasure = device.get_sample()
+...     results = MeasurementSample.from_code_and_raw_results(code, raw, erasure)
 ...     correction = decoder.decode(results.erased_qubits, results.syndrome)
 ...     if check_success(
 ...         code, correction, results.logical_op_toggle, logical_operator
@@ -498,9 +518,8 @@ error rate*.
 0.038...
 
 If we combine this with changing the error rates and the size of the code, we
-can calculate the threshold of the code. We can switch to the
-:class:`.StimSimulator` to speed things up and calculate 1000 repetitions per
-data point.
+can calculate the threshold of the code. We can switch to the `Stim`_ simulator
+to speed things up and calculate 1000 repetitions per data point.
 
 .. warning:: The following script will take a fairly **long** time if you run
    it sequentially! We recommend using something like
@@ -518,8 +537,7 @@ data point.
    from plaquette.circuit.generator import generate_qec_circuit
    from plaquette.codes import LatticeCode
    from plaquette.decoders import UnionFindDecoder
-   from plaquette.simulator import SimulatorSample
-   from plaquette.simulator.stimsim import StimSimulator
+   from plaquette.device import MeasurementSample
    from plaquette.decoders.decoderbase import check_success
 
 
@@ -541,12 +559,13 @@ data point.
                }
            }
            circuit = generate_qec_circuit(code, qed, {}, logical_op)
-           simulator = StimSimulator(circ=circuit)
+           device = Device("stim")
+           device.run(circuit)
            decoder = UnionFindDecoder.from_code(code, qed, weighted=True)
            successes = 0
            for _ in range(reps):
-               raw_results, erasure = simulator.get_sample()
-               sample = SimulatorSample.from_code_and_raw_results(
+               raw_results, erasure = device.get_sample()
+               sample = MeasurementSample.from_code_and_raw_results(
                   code, raw_results, erasure
                )
                correction = decoder.decode(sample.erased_qubits, sample.syndrome)

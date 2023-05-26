@@ -54,12 +54,13 @@ class Circuit:
 
     In order to build circuits step-by-step, :class:`CircuitBuilder` can be useful.
 
-    The circuit can be simulated using :mod:`plaquette.simulator` module to obtain the
+    The circuit can be simulated using :mod:`plaquette.device` module to obtain the
     measurement outcomes along with information about errors as follows:
 
-    >>> from plaquette.simulator import circuitsim
-    >>> sim = circuitsim.CircuitSimulator(circ)
-    >>> measurements, erasure = sim.get_sample()
+    >>> from plaquette import Device
+    >>> dev = Device("clifford")
+    >>> dev.run(circ)
+    >>> measurements, erasure = dev.get_sample()
     >>> measurements
     array([0, 0, 0, 1, 1, 0], dtype=uint8)
     >>> erasure

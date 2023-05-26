@@ -8,8 +8,8 @@ import yaml  # type: ignore
 
 import plaquette
 from plaquette.circuit import Circuit
-from plaquette.simulator import QuantumState
-from plaquette.simulator.circuitsim import CircuitSimulator
+from plaquette.device import QuantumState
+from plaquette.device._circuitsim import CircuitSimulator
 
 
 def yaml_circuit_to_pytest_params(
@@ -28,7 +28,7 @@ def yaml_circuit_to_pytest_params(
     try:
         circuit_suite = yaml.load(open(yaml_path), yaml.SafeLoader)[circuit_suite_key]
     except FileNotFoundError:
-        yaml_path = "tests/unittests/simulator/" + yaml_path
+        yaml_path = "tests/unittests/device/" + yaml_path
         circuit_suite = yaml.load(open(yaml_path), yaml.SafeLoader)[circuit_suite_key]
     params_list: list[tuple] = []
     for params in circuit_suite.values():
@@ -53,7 +53,7 @@ def yaml_parametrized_circuit_to_pytest_params(
     try:
         circuit_suite = yaml.load(open(yaml_path), yaml.SafeLoader)[circuit_suite_key]
     except FileNotFoundError:
-        yaml_path = "tests/unittests/simulator/" + yaml_path
+        yaml_path = "tests/unittests/device/" + yaml_path
         circuit_suite = yaml.load(open(yaml_path), yaml.SafeLoader)[circuit_suite_key]
 
     assert isinstance(
