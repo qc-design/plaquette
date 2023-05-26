@@ -31,7 +31,7 @@ jobs:
         cache: 'pip'
         cache-dependency-path: 'requirements*.txt'
     - name: Install Python packages
-      run: python3 -m pip install -r requirements_dev.txt -r requirements.txt build
+      run: python3 -m pip install -r requirements_dev.txt -r requirements.txt
     - name: Build plaquette
       run: python3 -m build --wheel
     - name: Install plaquette
