@@ -16,15 +16,15 @@ Installation
 ------------
 
 ``plaquette`` is a pure Python package, so it can be easily installed via
-``pip`` after you clone the repository::
+``pip``::
 
-   git clone git@github.com:qc-design/plaquette.git && cd plaquette && pip install .
+   pip install plaquette
 
 
 Documentation
 -------------
 
-Live pre-compiled documention is available
+Live pre-compiled documentation is available
 `here <https://docs.plaquette.design/>`_.
 
 Alternatively, the documentation can be built from the ``master`` branch by::
@@ -39,14 +39,14 @@ Need help? Want to contribute?
 
 ``plaquette`` is under heavy development, so it might have some rough corners that need
 polishing. If you encounter something you think (or the docs say) should work but does
-not, just open an `issue <https://github.com/qc-design/plaquette-mirror/issues/new>`_
+not, just open an `issue <https://github.com/qc-design/plaquette/issues/new>`_
 or, if you also want to share a solution, a
-`pull request <https://github.com/qc-design/plaquette-mirror/compare>`_! See
+`pull request <https://github.com/qc-design/plaquette/compare>`_! See
 our `development standard <https://docs.plaquette.design/dev/index.html>`_ to
 have an idea of how to match your suggestions to the codebase.
 
 Want to simply share feedback or you're unsure how to do something? Open a new
-`discussion <https://github.com/qc-design/plaquette-mirror/discussions/new/choose>`_!
+`discussion <https://github.com/qc-design/plaquette/discussions/new/choose>`_!
 
 
 Supporters

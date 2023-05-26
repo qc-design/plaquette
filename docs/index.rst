@@ -35,15 +35,11 @@ experienced users alike.
 Installation
 ------------
 
-.. warning::
+``plaquette`` can be installed like any other Python package via ``pip``::
 
-   We are working on bringing ``plaquette`` onto PyPI and, eventually
-   Anaconda, so that you can simply type ``pip install plaquette`` and start
-   coding, stay tuned! Right now, you can install it with one of the methods
-   below.
+    pip install plaquette
 
-``plaquette`` can be installed like any other Python package via ``pip``. You
-can clone the repository and install it in one go very conveniently with::
+Other wise, you can do::
 
     pip install git+https://github.com/qc-design/plaquette
 
