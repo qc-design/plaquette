@@ -109,14 +109,16 @@ def check_success(
         .. code::
 
             from plaquette import codes, circuit, decoders, errors, simulator, utils
+            from plaquette import Device
 
             code = codes.PlanarCode(n_rounds=1, size=3)
             errordata = errors.ErrorData()
             errordata.update_all(code, {"pauli_1": {"p_x": 0.01, "p_z": 0.08}})
 
             circ = circuit.generate_qec_circuit(code, errordata, logical_ops="Z")
-            sim = simulator.CircuitSimulator(circ)
-            sample = sim.get_sample()
+            dev = Device("clifford")
+            dev.run(circ)
+            sample = dev.get_sample()
 
             results = utils.split_measurement_results(code, sample)
 

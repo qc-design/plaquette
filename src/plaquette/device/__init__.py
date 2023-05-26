@@ -1,30 +1,31 @@
 # Copyright 2023, It'sQ GmbH and the plaquette contributors
 # SPDX-License-Identifier: Apache-2.0
-"""Error correction simulators.
+"""Quantum devices and error correction simulators.
 
-This module provides tools for simulating quantum error correction using suitable
-Clifford circuits. A circuit from :mod:`plaquette.circuit` can be simulated as follows:
+This module provides tools for connecting to quantum devices and simulating
+quantum error correction using suitable Clifford circuits. A circuit from
+:mod:`plaquette.circuit` can be simulated as follows:
 
 >>> from plaquette.codes import LatticeCode
 >>> from plaquette.circuit.generator import generate_qec_circuit
->>> from plaquette.simulator.circuitsim import CircuitSimulator
+>>> from plaquette import Device
 >>> circ = generate_qec_circuit(LatticeCode.make_planar(1, 4), {}, {}, logical_ops="X")
->>> sim = CircuitSimulator(circ)
->>> sim  # doctest: +ELLIPSIS
-<plaquette.simulator.circuitsim.CircuitSimulator object at ...>
+>>> dev = Device("clifford")
+>>> dev  # doctest: +ELLIPSIS
+<plaquette.device.Device object at ...>
 
-In addition to the built-in pure-Python circuit simulator, the faster Stim simulator
-can be used by substituting :class:`stimsim.StimSimulator`:
+In addition to the built-in pure-Python circuit simulator backend, the faster
+Stim simulator can be used by specifying ``"stim"`` as the backend:
 
->>> from plaquette.simulator.stimsim import StimSimulator
->>> sim = StimSimulator(circ)
->>> raw, erasure = sim.get_sample()
+>>> dev = Device("stim")
+>>> dev.run(circ)
+>>> raw, erasure = dev.get_sample()
 
 ``raw`` contains all the measurement results from measurement gates in the
 circuit, while ``erasure`` contains information on erased qubits if
 the :ref:`Gate E_ERASE` was used. The circuit returns measurement results as a
 linear array and the function
-:meth:`.SimulatorSample.from_code_and_raw_results` can be used to split this
+:meth:`.MeasurementSample.from_code_and_raw_results` can be used to split this
 array into different parts (this assumes that the circuit was generated using
 :mod:`plaquette.circuit`).
 """
@@ -34,7 +35,9 @@ from dataclasses import dataclass
 from typing import Iterable, Optional, Sequence
 
 import numpy as np
+import pkg_resources
 
+from plaquette import circuit as plaq_circuit
 from plaquette.codes import LatticeCode
 from plaquette.pauli import (
     count_qubits,
@@ -165,7 +168,7 @@ class QuantumState:
 
 
 @dataclass
-class SimulatorSample:
+class MeasurementSample:
     """One sample from a simulator.
 
     .. automethod:: __init__
@@ -272,7 +275,7 @@ class SimulatorSample:
         else:
             erasure = None
 
-        return SimulatorSample(
+        return MeasurementSample(
             logical_op_initial=logical_op_initial,
             logical_op_final=logical_op_final,
             logical_op_toggle=logical_toggle,
@@ -282,6 +285,165 @@ class SimulatorSample:
         )
 
 
+local_simulators = {"clifford", "stim"}
+
+
+# The recognized quantum devices.
+# Note that these are loaded once when the module has been loaded.
+recognized_devices = {
+    entry.name: entry for entry in pkg_resources.iter_entry_points("plaquette.device")
+}
+
+
+class Device:
+    """Quantum device for accessing simulators or real quantum hardware.
+
+    .. automethod:: __init__
+    """
+
+    def __init__(self, backend: str, *args, **kwargs):
+        """Create a new quantum device.
+
+        There are two built-in backends: ``"clifford"``
+        (:class:`.CircuitSimulator`, simulator based on Clifford circuits) and
+        ``"stim"`` (:class:`.StimSimulator`, simulator using Stim as
+        backend).
+
+        Further devices may be provided as plugins to plaquette. Note that such
+        plugins may have to be installed separately to plaquette and that a new
+        Python session may have to be started to have such devices be
+        recognized after installation.
+
+        Args:
+            backend: The name of the backend to use.
+            args: Arguments that the backend takes.
+            kwargs: Keyword arguments that the backend takes.
+
+        Notes:
+            Arguments and keywords arguments meant for the simulator are not
+            checked on device creation. Running a circuit will fail if there
+            are incorrect arguments passed. See the docs of the backend
+            you plan on using for a list of accepted arguments and
+            keyword arguments.
+        """
+        if backend not in recognized_devices:
+            raise ValueError(f"Specified backend {backend} is not recognized.")
+
+        self._args, self._kwargs = args, kwargs
+        self._backend_name = backend
+        self._backend_class = recognized_devices[backend].load()
+        if self._backend_name not in local_simulators:
+            self._backend = self._backend_class(*self._args, **self._kwargs)
+        else:
+            # A local backend needs a circuit for initialisation, so
+            # we delegate this action when the user calls .run()
+            self._backend = None
+
+        self._circuit = None
+
+    @property
+    def circuit(self):
+        """The underlying quantum circuit to simulate using the backend."""
+        return self._backend.circ
+
+    @circuit.setter
+    def circuit(self, circuit):
+        """Set the underlying quantum circuit to simulate using the backend."""
+        self._backend.circ = circuit
+
+    def __iter__(self):
+        """Iterate through instructions one-by-one.
+
+        The underlying backend has to define the ``__iter__`` method.
+        """
+        return self._backend.__iter__()
+
+    def __next__(self):
+        """Step to the next gate/instruction in the circuit sequence.
+
+        The underlying backend has to define the ``__next__`` method.
+        """
+        return self._backend.__next__()
+
+    @property
+    def state(self):
+        """The underlying quantum state of the backend, if available.
+
+        The underlying backend has to define the ``state`` property.
+        """
+        return self._backend.state
+
+    @property
+    def n_qubits(self):
+        """Number of qubits that underlying backend handles.
+
+        The underlying backend has to define the ``n_qubits`` property.
+        """
+        return self._backend.n_qubits
+
+    def reset_backend(self, *args, **kwargs):
+        """Reset the underlying backend."""
+        return self._backend.reset(*args, **kwargs)
+
+    def run(
+        self,
+        circuit: plaq_circuit.Circuit | plaq_circuit.CircuitBuilder,
+        *,
+        after_reset=True,
+        shots=1,
+    ):
+        """Run the given circuit.
+
+        Args:
+            circuit: The circuit (or the builder containing it) to be simulated.
+
+        Keyword Args:
+            after_reset: for simulators, if ``False``, the returned measurement
+                and erasures will still contain any data from previous runs.
+                Otherwise, both these results and the internal state will be reset.
+            shots: for remote backends, the number of shots to execute the
+                circuit with.
+        """
+        # backend is None in the case of a local simulator, but now we
+        # can actually create one, since we have a circuit
+        if self._backend_name in local_simulators:
+            if self._backend is None or self.circuit is not circuit:
+                self._backend = self._backend_class(
+                    circuit, *self._args, **self._kwargs
+                )
+            return self._backend.run(after_reset=after_reset)
+
+        return self._backend.run(circuit, shots=shots)
+
+    def get_sample(self) -> tuple[np.ndarray, np.ndarray]:
+        """Return the samples **after a circuit run**.
+
+        Notes:
+            This method assumes that the run method has already been called.
+        """
+        if self._backend_name in local_simulators:
+            # For local simulators get_sample both runs and processes the
+            # results. Here, we only want to call the method that process the
+            # results, so we choose process_results.
+            # TODO: iron out the naming inconsistency between Device and
+            # simulators
+            get_sample_method = self._backend.process_results
+        else:
+            get_sample_method = self._backend.get_sample
+        return get_sample_method()
+
+    @property
+    def is_completed(self) -> Optional[list[bool]]:
+        """Returns whether the jobs submitted by the device have been completed.
+
+        Notes:
+            This method simply returns None for simulators.
+        """
+        if self._backend_name in local_simulators:
+            return None
+        return self._backend.is_completed
+
+
 class AbstractSimulator(metaclass=abc.ABCMeta):
     """Simulator base class.
 
@@ -289,17 +451,49 @@ class AbstractSimulator(metaclass=abc.ABCMeta):
     """
 
     @abc.abstractmethod
+    def reset(self):
+        """Reset this simulator to its default state.
+
+        The simulator will discard all data that it stored which came from
+        circuit runs, if any, and will reset any internal state it has to its
+        appropriate "zero" state.
+        """
+        raise NotImplementedError()
+
+    @abc.abstractmethod
+    def run(self, *, after_reset=True):
+        """Run the given circuit.
+
+        Keyword Args:
+            after_reset: if ``False``, the returned measurement and erasures will still
+                contain any data from previous runs. Otherwise, both these results and
+                the internal state will be reset.
+        """
+        raise NotImplementedError()
+
+    @abc.abstractmethod
+    def process_results(self):
+        """Return the processed measurement results after a circuit run.
+
+        Notes:
+            This method assumes that the run method has already been called.
+        """
+        raise NotImplementedError()
+
     def get_sample(self, *, after_reset=True) -> tuple[np.ndarray, np.ndarray]:
         """Sample from simulator.
 
         Keyword Args:
             after_reset: if ``True``, the simulator must reset its internal
                 state before returning a new sample. Subclasses that cannot
-                honor this should raise an exception.
+                honor this distinction should raise an exception.
 
         Returns:
             a tuple whose first item is an array of measurement outcomes
-            and whose second item is the erasure information.
+            and whose second item is the erasure information. If you draw a new
+            sample with ``after_reset=False``, then the returned value will be
+            a concatenation of results of the latest sample, plus all
+            other samples since the last time ``after_reset`` was ``True``.
 
         Notes:
             The **measurements** item in the returned tuple is a one-dimensional array
@@ -330,11 +524,12 @@ class AbstractSimulator(metaclass=abc.ABCMeta):
             ``[n_rounds * n_qubits]``.
 
             To unpack these arrays, you can use
-            :meth:`~plaquette.simulator.SimulatorSample.from_code_and_raw_results`.
+            :meth:`~plaquette.device.MeasurementSample.from_code_and_raw_results`.
 
             .. todo::
-                We need to come up with a way to remove this additional step. In theory,
-                a simulator class should immediately return a :class:`.SimulatorSample`,
-                and not require this class method.
+                We need to come up with a way to remove this additional step.
+                In theory, a simulator class should immediately return a
+                :class:`.MeasurementSample`, and not require this class method.
         """
-        raise NotImplementedError()
+        self.run(after_reset=after_reset)
+        return self.process_results()

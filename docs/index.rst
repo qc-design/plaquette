@@ -79,12 +79,12 @@ Rich set of "off-the-shelf" components
    construct a lattice from scratch and define the errors you need!
 Hackable circuit simulator
    ``plaquette`` comes with a simple but open and easy to understand
-   :class:`.CircuitSimulator`, together with a streamlined :class:`.Circuit`
-   description, which allows you to dive deep into the details of what's
-   happening in the simulation. Want to manipulate and alter the internal
-   :class:`.QuantumState` of the simulator before/after your circuit starts?
-   You can! Don't care about that? Just
-   :meth:`~.AbstractSimulator.get_sample`!
+   ``"clifford"`` backend (via :class:`.Device`), together with a streamlined
+   :class:`.Circuit` description, which allows you to dive deep into the
+   details of what's happening in the simulation. Want to manipulate and alter
+   the internal :class:`.QuantumState` of the simulator before/after your
+   circuit starts?  You can! Don't care about that? Just
+   :meth:`~.Device.get_sample`!
 Growing collection of fine-grained error models
    from simple Pauli error channels to correlated 2-qubit noise, gate-level
    errors and unique possibility of handling **erasure** errors, ``plaquette``
@@ -117,7 +117,7 @@ Overall structure
 :mod:`plaquette.codes`
    Classes and methods dealing with the definition of error correction codes and
    lattices on which they are defined.
-:mod:`plaquette.circuit` and :mod:`plaquette.simulator`
+:mod:`plaquette.circuit` and :mod:`plaquette.device`
    Everything dealing with Clifford circuits and how to efficiently simulate
    them.
 :mod:`plaquette.decoders`

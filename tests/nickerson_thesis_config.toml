@@ -3,8 +3,8 @@ logical_op = "Z"
 qec_property = ["logical_error_rate"]
 seed = 62934814123
 
-[simulator]
-name = "CircuitSimulator"
+[device]
+name = "clifford"
 shots = 10000
 
 [code]

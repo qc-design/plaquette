@@ -16,16 +16,14 @@ from jsonschema import validate
 from tqdm import tqdm
 
 import plaquette
-from plaquette import decoders, visualizer
+from plaquette import Device, decoders, visualizer
 from plaquette.circuit import Circuit, generator
 from plaquette.codes import LatticeCode
 from plaquette.codes.latticebase import CodeLattice
 from plaquette.decoders.decoderbase import check_success
+from plaquette.device import AbstractSimulator, MeasurementSample
 from plaquette.errors import ErrorData, generate_empty_qubit_errors_csv
 from plaquette.frontend import schemas
-from plaquette.simulator import AbstractSimulator, SimulatorSample
-from plaquette.simulator.circuitsim import CircuitSimulator
-from plaquette.simulator.stimsim import StimSimulator
 
 
 def _validate_filepath(filepath: str, load_file: bool) -> bool:
@@ -1563,24 +1561,24 @@ class CircuitConfig:
 
 
 @dataclass(kw_only=True)
-class SimulatorConfig:
-    """Class to store the configurations for the simulator.
+class DeviceConfig:
+    """Class to store the configurations for the device.
 
     Raises:
-        ValueError: The simulator name not one of the supported ones.
+        ValueError: The device name not one of the supported ones.
         ValueError: Shots is not a positive integer.
 
     Examples:
-        >>> conf = SimulatorConfig(name = "CircuitSimulator", shots =1024)
+        >>> conf = DeviceConfig(name = "clifford", shots =1024)
         >>> print(conf)
-        SimulatorConfig(name='CircuitSimulator', shots=1024)
+        DeviceConfig(name='clifford', shots=1024)
     """
 
-    name: str = field(default="CircuitSimulator")
-    """ The name of the simulator.
+    name: str = field(default="clifford")
+    """ The name of the backend to use with the device.
 
-    Valid names are :class:`.CircuitSimulator` and :class:`.StimSimulator`.
-    Defaults to :class:`~.CircuitSimulator`.
+    Valid names for local simulators are ``"clifford"`` and ``"stim"``.
+    Defaults to ``"clifford"`` that uses :class:`~.CircuitSimulator`.
     """
 
     shots: int = field(default=1024)
@@ -1589,20 +1587,19 @@ class SimulatorConfig:
     Must be a positive integer. Defaults to 1024.
     """
 
-    VALID_SIMULATORS: ClassVar[tuple[str, ...]] = (
-        "CircuitSimulator",
-        "StimSimulator",
+    VALID_SIMULATORS: ClassVar[tuple[str, ...]] = tuple(
+        plaquette.device.recognized_devices
     )
     """
     :meta private:
     """
 
     def __post_init__(self):
-        """Make sure we are not using an unsupported simulator."""
+        """Make sure we are not using an unsupported device."""
         if self.name not in self.VALID_SIMULATORS:
-            raise ValueError(f"{self.name} is not a valid simulator name")
+            raise ValueError(f"{self.name} is not a valid device name")
         if not (isinstance(self.shots, int) and self.shots > 0):
-            raise ValueError(f"simulator.shots = {self.shots} must be an integer")
+            raise ValueError(f"device.shots = {self.shots} must be an integer")
 
     def __str__(self):  # noqa: D105
         return pformat(self)
@@ -1621,16 +1618,16 @@ class SimulatorConfig:
                 setattr(self, key, value)
 
     @classmethod
-    def from_dict(cls, config_dict: dict) -> SimulatorConfig:
-        """Instantiate :class:`~SimulatorConfig` object from config dictionary.
+    def from_dict(cls, config_dict: dict) -> DeviceConfig:
+        """Instantiate :class:`~DeviceConfig` object from config dictionary.
 
         Args:
             config_dict: Any class attribute.
 
         Returns:
-            A :class:`~SimulatorConfig` object.
+            A :class:`~DeviceConfig` object.
         """
-        config_dict.setdefault("name", "CircuitSimulator")
+        config_dict.setdefault("name", "clifford")
         config_dict.setdefault("shots", 1024)
         return cls(
             name=cast(str, config_dict.get("name")),
@@ -1645,28 +1642,18 @@ class SimulatorConfig:
         """
         return asdict(self)
 
-    def instantiate(
-        self, circuit: Circuit, **kwargs
-    ) -> Union[StimSimulator, CircuitSimulator]:
-        """Instantiate a ``Simulator`` object with the objects' config.
+    def instantiate(self, **kwargs) -> Device:
+        """Instantiate a ``Device`` with the chosen backend using the objects' config.
 
         Args:
-            circuit : The circuit to simulate
-            kwargs: Passed on to :class:`~StimSimulator`.
+            kwargs: Passed on when the backend is ``"stim"``.
 
         Returns:
-            A :class:`~StimSimulator` or :class:`~.CircuitSimulator` object.
+            A :class:`~Device` object.
         """
-        ret_val: Union[StimSimulator, CircuitSimulator]
-        match self.name:
-            case "StimSimulator":
-                ret_val = StimSimulator(circuit, **kwargs)
-            case "CircuitSimulator":
-                ret_val = CircuitSimulator(circuit)
-            case _:
-                raise AttributeError(f"{self.name} is an invalid simulator!")
-
-        return ret_val
+        if self.name in tuple(plaquette.device.recognized_devices):
+            return Device(self.name, **kwargs)
+        raise AttributeError(f"{self.name} is an invalid device!")
 
 
 @dataclass(kw_only=True)
@@ -1820,10 +1807,10 @@ class ExperimentConfig:
     )
     """Generic configurations for the experiment of the :class:`~GeneralConfig`."""
 
-    simulator_conf: SimulatorConfig = field(default_factory=lambda: SimulatorConfig())
-    """Configuration of the simulator in the experiment.
+    device_conf: DeviceConfig = field(default_factory=lambda: DeviceConfig())
+    """Configuration of the device in the experiment.
 
-    Defaults to a :class:`~SimulatorConfig` object with default values.
+    Defaults to a :class:`~DeviceConfig` object with default values.
     """
 
     circuit_conf: CircuitConfig = field(default_factory=lambda: CircuitConfig())
@@ -1840,7 +1827,7 @@ class ExperimentConfig:
 
     _code: LatticeCode | None = None
     _errors: ErrorData | None = None
-    _simulator: Type[AbstractSimulator] | None = None
+    _device: Type[AbstractSimulator] | None = None
     _circuit: Circuit | None = None
     _decoder: Type[decoders.DecoderInterface] | None = None
 
@@ -1875,14 +1862,14 @@ class ExperimentConfig:
         return cast(Circuit, self._circuit)
 
     @property
-    def simulator(self):
+    def device(self):
         """The built :class:`~.AbstractSimulator` object in the experiment."""
         if self._circuit is None:
             raise ValueError(
                 "Simulator has not been instantiated yet, use build() or "
-                + "build_simulator() method to do so!"
+                + "build_device() method to do so!"
             )
-        return self._simulator
+        return self._device
 
     @property
     def decoder(self):
@@ -1916,9 +1903,9 @@ class ExperimentConfig:
                                                   # only logical_error_rate is possible
             seed = 123124 # the seed for the random number generator
 
-            [simulator]
-            name = "StimSimulator" # The simulator to use,
-            shots = 10000 # the number of shots to run the simulator for
+            [device]
+            name = "stim" # The device to use,
+            shots = 10000 # the number of shots to run the device for
 
             [code]
             name = "RotatedPlanarCode" # The code to use.
@@ -2100,19 +2087,17 @@ class ExperimentConfig:
                     'qec_property': ['logical_error_rate'],
                     'seed': 123124
                 },
-                'simulator': {'name': 'StimSimulator', 'shots': 10000}
+                'device': {'name': 'stim', 'shots': 10000}
             }
         """  # noqa
-        config_dict.setdefault("simulator", {})
+        config_dict.setdefault("device", {})
         config_dict.setdefault("errors", {})
         config_dict.setdefault("decoder", {})
         config_dict.setdefault("circuit", {})
         config_dict.setdefault("code", {})
         return cls(
             general_conf=cast(GeneralConfig, config_dict.get("general")),
-            simulator_conf=SimulatorConfig.from_dict(
-                cast(dict, config_dict.get("simulator"))
-            ),
+            device_conf=DeviceConfig.from_dict(cast(dict, config_dict.get("device"))),
             circuit_conf=CircuitConfig.from_dict(
                 cast(dict, config_dict.get("circuit"))
             ),
@@ -2166,7 +2151,7 @@ class ExperimentConfig:
         self.build_code()
         self.build_errors()
         self.build_circuit()
-        self.build_simulator()
+        self.build_device()
         self.build_decoder()
 
     def build_code(self) -> None:
@@ -2205,21 +2190,19 @@ class ExperimentConfig:
             self.general_conf["logical_op"],
         )
 
-    def build_simulator(self, **kwargs) -> None:
+    def build_device(self, **kwargs) -> None:
         """Build the `Circuit` object.
 
         Built object is accessible through :class:`~ExperimentConfig.circuit`
 
         Keyword Args:
-            batch_size: if using StimSimulator, defaults to 1024.
-            kwargs: keyword arguments to :meth:`.SimulatorConfig.instantiate`.
+            batch_size: if using Stim as the backend, defaults to 1024.
+            kwargs: keyword arguments to :meth:`.DeviceConfig.instantiate`.
 
         Returns:
             None, updates :attr:`~ExperimentConfig.circuit`.
         """
-        self._simulator = self.simulator_conf.instantiate(
-            cast(Circuit, self._circuit), **kwargs
-        )  # type: ignore
+        self._device = self.device_conf.instantiate(**kwargs)  # type: ignore
 
     def build_decoder(self) -> None:
         """Build the `Decoder` object.
@@ -2273,14 +2256,12 @@ class ExperimentConfig:
         """
         match self.general_conf["qec_property"]:
             case ["logical_error_rate"]:
-                if isinstance(
-                    self._simulator,
-                    (CircuitSimulator, StimSimulator),
-                ):
-                    test_success = np.zeros([self.simulator_conf.shots], dtype=bool)
-                    for i in tqdm(range(self.simulator_conf.shots)):
-                        raw, erasure = self._simulator.get_sample()
-                        results = SimulatorSample.from_code_and_raw_results(
+                if self._device._backend_class in plaquette.device.local_simulators:
+                    test_success = np.zeros([self.device_conf.shots], dtype=bool)
+                    for i in tqdm(range(self.device_conf.shots)):
+                        self._device.run(cast(Circuit, self._circuit))
+                        raw, erasure = self._device.get_sample()
+                        results = MeasurementSample.from_code_and_raw_results(
                             self._code, raw, erasure
                         )
                         correction = self._decoder.decode(

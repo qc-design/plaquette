@@ -8,6 +8,7 @@ import pytest as pt
 import plaquette
 from plaquette.circuit.generator import QECCircuitGenerator, generate_qec_circuit
 from plaquette.codes import LatticeCode
+from plaquette.device import Device, MeasurementSample
 from plaquette.errors import (
     ErrorValueDict,
     GateErrorsDict,
@@ -15,7 +16,6 @@ from plaquette.errors import (
     SinglePauliChannelErrorValueDict,
     TwoPauliChannelErrorValueDict,
 )
-from plaquette.simulator import SimulatorSample, circuitsim
 
 
 @pt.fixture
@@ -192,9 +192,11 @@ class TestQECCircuitGenerator:
         )
 
         circ = generate_qec_circuit(code, qubit_errors, GateErrorsDict(), "X")
-        sim = circuitsim.CircuitSimulator(circ)
-        raw, erasure = sim.get_sample()
-        results = SimulatorSample.from_code_and_raw_results(code, raw, erasure)
+
+        dev = Device("clifford")
+        dev.run(circ)
+        raw, erasure = dev.get_sample()
+        results = MeasurementSample.from_code_and_raw_results(code, raw, erasure)
         # fmt: off
         assert (results.syndrome == np.array([
             [0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0]

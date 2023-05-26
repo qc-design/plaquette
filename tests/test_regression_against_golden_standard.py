@@ -15,6 +15,7 @@ import numpy as np
 import pytest as pt
 
 import plaquette
+from plaquette import Device
 from plaquette.circuit.generator import generate_qec_circuit
 from plaquette.codes import LatticeCode
 from plaquette.decoders import (
@@ -23,6 +24,7 @@ from plaquette.decoders import (
     UnionFindDecoder,
     decoderbase,
 )
+from plaquette.device import MeasurementSample
 from plaquette.errors import (
     ErrorDataDict,
     ErrorValueDict,
@@ -31,9 +33,6 @@ from plaquette.errors import (
     SinglePauliChannelErrorValueDict,
 )
 from plaquette.frontend import ExperimentConfig
-from plaquette.simulator import AbstractSimulator, SimulatorSample
-from plaquette.simulator.circuitsim import CircuitSimulator
-from plaquette.simulator.stimsim import StimSimulator
 
 
 def calculate_success(
@@ -44,7 +43,7 @@ def calculate_success(
 ):
     """Helper function for parallel calculations with joblib."""
     raw_results, erasure = sim_res
-    sample = SimulatorSample.from_code_and_raw_results(code, raw_results, erasure)
+    sample = MeasurementSample.from_code_and_raw_results(code, raw_results, erasure)
     correction = decoder.decode(sample.erased_qubits, sample.syndrome)
     return decoderbase.check_success(
         code, correction, sample.logical_op_toggle, logical_op
@@ -55,16 +54,16 @@ class TestRegressionAPI:
     @pt.mark.slow
     @pt.mark.parametrize("decoder_class", [PyMatchingDecoder, FusionBlossomDecoder])
     @pt.mark.parametrize(
-        "simulator_class,reps",
+        "backend_name,reps",
         [
-            (CircuitSimulator, 100),
-            (StimSimulator, 10000),
+            ("clifford", 100),
+            ("stim", 10000),
         ],
     )
     def test_pauli_and_measurement_errors_vs_logical_error_rates_in_nickerson_thesis(
         self,
         decoder_class: Type[decoderbase.DecoderInterface],
-        simulator_class: Type[AbstractSimulator],
+        backend_name: str,
         reps: int,
     ):
         """Test to be matched/compared with Fig. 1.12 in doi:10.25560/31475."""
@@ -82,7 +81,8 @@ class TestRegressionAPI:
 
         plaquette.rng = np.random.default_rng(seed=62934814123)
         circ = generate_qec_circuit(code, qubit_errors, GateErrorsDict(), logical_op)
-        sim = simulator_class(circ)  # type: ignore
+
+        dev = Device(backend_name)  # type: ignore
 
         decoder = decoder_class.from_code(
             code, cast(ErrorDataDict, qubit_errors), weighted=True
@@ -91,8 +91,9 @@ class TestRegressionAPI:
         test_success = np.zeros([reps], dtype=bool)
 
         for i in range(reps):
-            raw, erasure = sim.get_sample()
-            results = SimulatorSample.from_code_and_raw_results(code, raw, erasure)
+            dev.run(circ)
+            raw, erasure = dev.get_sample()
+            results = MeasurementSample.from_code_and_raw_results(code, raw, erasure)
             correction = decoder.decode(results.erased_qubits, results.syndrome)
             test_success[i] = decoderbase.check_success(
                 code, correction, results.logical_op_toggle, logical_op
@@ -101,13 +102,11 @@ class TestRegressionAPI:
 
     @pt.mark.slow
     @pt.mark.parametrize("decoder_class", [PyMatchingDecoder, FusionBlossomDecoder])
-    @pt.mark.parametrize(
-        "simulator_class,reps", [(CircuitSimulator, 1000), (StimSimulator, 10000)]
-    )
+    @pt.mark.parametrize("backend_name,reps", [("clifford", 1000), ("stim", 10000)])
     def test_pauli_x_errors_vs_logical_error_rates_in_nickerson_thesis(
         self,
         decoder_class: Type[decoderbase.DecoderInterface],
-        simulator_class: Type[AbstractSimulator],
+        backend_name: str,
         reps: int,
     ):
         """Test to be matched/compared with Fig. 1.11 in doi:10.25560/31475."""
@@ -121,7 +120,7 @@ class TestRegressionAPI:
         )
         plaquette.rng = np.random.default_rng(seed=62934814123)
         circ = generate_qec_circuit(code, qubit_errors, GateErrorsDict(), logical_op)
-        sim = simulator_class(circ)  # type: ignore
+        dev = Device(backend_name)  # type: ignore
 
         decoder = decoder_class.from_code(
             code, cast(ErrorDataDict, qubit_errors), weighted=True
@@ -130,8 +129,9 @@ class TestRegressionAPI:
         test_success = np.zeros([reps], dtype=bool)
 
         for i in range(reps):
-            raw, erasure = sim.get_sample()
-            results = SimulatorSample.from_code_and_raw_results(code, raw, erasure)
+            dev.run(circ)
+            raw, erasure = dev.get_sample()
+            results = MeasurementSample.from_code_and_raw_results(code, raw, erasure)
             correction = decoder.decode(results.erased_qubits, results.syndrome)
             test_success[i] = decoderbase.check_success(
                 code, correction, results.logical_op_toggle, logical_op
@@ -139,9 +139,7 @@ class TestRegressionAPI:
         assert 0.11 < 1 - np.count_nonzero(test_success) / reps < 0.19
 
     @pt.mark.slow
-    @pt.mark.parametrize(
-        "simulator_class,reps", [(CircuitSimulator, 100), (StimSimulator, 10000)]
-    )
+    @pt.mark.parametrize("backend_name,reps", [("clifford", 100), ("stim", 10000)])
     @pt.mark.parametrize(
         "p_erasure,err_rate,uncertainty",
         [
@@ -152,7 +150,7 @@ class TestRegressionAPI:
     )
     def test_erasure_errors_vs_logical_error_rates(
         self,
-        simulator_class: Type[AbstractSimulator],
+        backend_name: str,
         reps: int,
         p_erasure: float,
         err_rate: float,
@@ -178,7 +176,7 @@ class TestRegressionAPI:
         plaquette.rng = np.random.default_rng(seed=62934814123)
 
         circ = generate_qec_circuit(code, qubit_errors, GateErrorsDict(), logical_op)
-        sim = simulator_class(circ)  # type: ignore
+        dev = Device(backend_name)  # type: ignore
 
         dec = UnionFindDecoder.from_code(
             code, cast(ErrorDataDict, qubit_errors), weighted=True
@@ -187,8 +185,9 @@ class TestRegressionAPI:
         succ = np.zeros([reps], dtype=bool)
 
         for i in range(reps):
-            raw, erasure = sim.get_sample()
-            results = SimulatorSample.from_code_and_raw_results(code, raw, erasure)
+            dev.run(circ)
+            raw, erasure = dev.get_sample()
+            results = MeasurementSample.from_code_and_raw_results(code, raw, erasure)
             correction = dec.decode(results.erased_qubits, results.syndrome)
             succ[i] = decoderbase.check_success(
                 code, correction, results.logical_op_toggle, logical_op
@@ -226,11 +225,12 @@ class TestRegressionAPI:
             "pauli": {q.equbit_idx: {"x": error_rate} for q in code.lattice.dataqubits}
         }
         circuit = generate_qec_circuit(code, qed, {}, logical_op)
-        simulator = StimSimulator(circ=circuit, batch_size=reps)
+        dev = Device("stim", batch_size=reps)
         decoder = UnionFindDecoder.from_code(code, qed, weighted=False)
         sim_res = list()
         for _ in range(reps):
-            sim_res.append(simulator.get_sample())
+            dev.run(circuit)
+            sim_res.append(dev.get_sample())
         success_rate = (
             np.count_nonzero(
                 jl.Parallel(n_jobs=2)(  # GH Actions runners have 2 cores
@@ -255,20 +255,19 @@ def config_nickerson_thesis():
 
 class TestRegressionFrontend:
     @pt.mark.slow
-    @pt.mark.parametrize(
-        "simulator_class,reps", [("CircuitSimulator", 100), ("StimSimulator", 10000)]
-    )
+    @pt.mark.parametrize("backend_name,reps", [("clifford", 100), ("stim", 10000)])
     def test_pauli_and_measurement_errors_vs_logical_error_rates_in_nickerson_thesis(
-        self, simulator_class: str, reps: int, config_nickerson_thesis
+        self, backend_name: str, reps: int, config_nickerson_thesis
     ):
         """Test to be matched/compared with Fig. 1.12 in doi:10.25560/31475."""
-        config_nickerson_thesis.simulator_conf.update(name=simulator_class, shots=reps)
+        config_nickerson_thesis.device_conf.update(name=backend_name, shots=reps)
         config_nickerson_thesis.build()
         test_success = np.zeros([reps], dtype=bool)
 
         for i in range(reps):
-            raw, erasure = config_nickerson_thesis.simulator.get_sample()
-            results = SimulatorSample.from_code_and_raw_results(
+            config_nickerson_thesis.device.run(config_nickerson_thesis.circuit)
+            raw, erasure = config_nickerson_thesis.device.get_sample()
+            results = MeasurementSample.from_code_and_raw_results(
                 config_nickerson_thesis.code, raw, erasure
             )
             correction = config_nickerson_thesis.decoder.decode(
@@ -283,14 +282,12 @@ class TestRegressionFrontend:
         assert 0.01 < 1 - np.count_nonzero(test_success) / reps < 0.1
 
     @pt.mark.slow
-    @pt.mark.parametrize(
-        "simulator_class,reps", [("CircuitSimulator", 1000), ("StimSimulator", 10000)]
-    )
+    @pt.mark.parametrize("backend_name,reps", [("clifford", 1000), ("stim", 10000)])
     def test_pauli_x_errors_vs_logical_error_rates_in_nickerson_thesis_frontend(
-        self, simulator_class: str, reps: int, config_nickerson_thesis
+        self, backend_name: str, reps: int, config_nickerson_thesis
     ):
         """Test to be matched/compared with Fig. 1.12 in doi:10.25560/31475."""
-        config_nickerson_thesis.simulator_conf.update(name=simulator_class, shots=reps)
+        config_nickerson_thesis.device_conf.update(name=backend_name, shots=reps)
 
         config_nickerson_thesis.errors_conf.qubit_errors.X.update(params=[0.1])
         config_nickerson_thesis.errors_conf.qubit_errors.measurement.update(
@@ -301,8 +298,9 @@ class TestRegressionFrontend:
         test_success = np.zeros([reps], dtype=bool)
 
         for i in range(reps):
-            raw, erasure = config_nickerson_thesis.simulator.get_sample()
-            results = SimulatorSample.from_code_and_raw_results(
+            config_nickerson_thesis.device.run(config_nickerson_thesis.circuit)
+            raw, erasure = config_nickerson_thesis.device.get_sample()
+            results = MeasurementSample.from_code_and_raw_results(
                 config_nickerson_thesis.code, raw, erasure
             )
             correction = config_nickerson_thesis.decoder.decode(
@@ -317,9 +315,7 @@ class TestRegressionFrontend:
         assert 0.11 < 1 - np.count_nonzero(test_success) / reps < 0.19
 
     @pt.mark.slow
-    @pt.mark.parametrize(
-        "simulator_class,reps", [("CircuitSimulator", 100), ("StimSimulator", 10000)]
-    )
+    @pt.mark.parametrize("backend_name,reps", [("clifford", 100), ("stim", 10000)])
     @pt.mark.parametrize(
         "p_erasure,err_rate,uncertainty",
         [
@@ -330,7 +326,7 @@ class TestRegressionFrontend:
     )
     def test_erasure_errors_vs_logical_error_rates_frontend(
         self,
-        simulator_class: str,
+        backend_name: str,
         reps: int,
         p_erasure: float,
         err_rate: float,
@@ -341,7 +337,7 @@ class TestRegressionFrontend:
 
         Reference data is from commit 99ed6afdf2150fe3f6fa9a89e4774d326a1bf24f.
         """
-        config_nickerson_thesis.simulator_conf.update(name=simulator_class, shots=reps)
+        config_nickerson_thesis.device_conf.update(name=backend_name, shots=reps)
         config_nickerson_thesis.errors_conf.qubit_errors.X.enabled = False
         config_nickerson_thesis.errors_conf.qubit_errors.Y.update(
             distribution="constant", params=[1e-15], enabled=True
@@ -356,8 +352,9 @@ class TestRegressionFrontend:
         test_success = np.zeros([reps], dtype=bool)
 
         for i in range(reps):
-            raw, erasure = config_nickerson_thesis.simulator.get_sample()
-            results = SimulatorSample.from_code_and_raw_results(
+            config_nickerson_thesis.device.run(config_nickerson_thesis.circuit)
+            raw, erasure = config_nickerson_thesis.device.get_sample()
+            results = MeasurementSample.from_code_and_raw_results(
                 config_nickerson_thesis.code, raw, erasure
             )
             correction = config_nickerson_thesis.decoder.decode(

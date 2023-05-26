@@ -24,7 +24,7 @@ In this module, config classes exist to specify each of the above stated require
 - :class:`~plaquette.frontend.CodeConfig`
 - :class:`~plaquette.frontend.ErrorsConfig`
 - :class:`~plaquette.frontend.CircuitConfig`
-- :class:`~plaquette.frontend.SimulatorConfig`
+- :class:`~plaquette.frontend.DeviceConfig`
 - :class:`~plaquette.frontend.DecoderConfig`
 
 All of these classes have a ``from_dict()`` classmethod and an ``instantiate()``
@@ -223,12 +223,12 @@ The ``CircuitConfig`` class
 3. :meth:`~plaquette.frontend.CircuitConfig.circuit_path` - The path to circuit. If the
    ``circuit_provided`` is false, this path will be used to save the circuit instead.
 
-The ``SimulatorConfig`` class
+The ``DeviceConfig`` class
 ------------------------------
 
-1. :attr:`~plaquette.frontend.SimulatorConfig.name` - The name of the
+1. :attr:`~plaquette.frontend.DeviceConfig.name` - The name of the
    simulator  being used. Valid simulators can be found in the docstring
-2. :attr:`~plaquette.frontend.SimulatorConfig.shots` - The number of shots to run
+2. :attr:`~plaquette.frontend.DeviceConfig.shots` - The number of shots to run
    the simulation for.
 
 
@@ -261,8 +261,8 @@ descriptions of the config classes. Please refer to for more details.
                                           #  logical error rate is possible.
     seed = 123124 # the seed for the random number generator
 
-    [simulator]
-    name = "StimSimulator" # The simulator to use, see docstring for SimulatorConfig for valid names
+    [device]
+    name = "stim" # The device backend to use, see docstring for DeviceConfig for valid names
     shots = 10000 # the number of shots to run the simulator for
 
     [code]

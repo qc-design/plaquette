@@ -3,8 +3,8 @@ logical_op = "Z"
 qec_property = ["logical_error_rate"]
 seed = 123124
 
-[simulator]
-name = "StimSimulator"
+[device]
+name = "stim"
 shots = 10000
 
 [code]

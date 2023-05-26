@@ -5,13 +5,14 @@
 Stim is available from https://github.com/quantumlib/Stim (Apache 2.0 license).
 """
 
+import typing as t
 from typing import Optional
 
 import numpy as np
 import stim  # type: ignore
 
 import plaquette
-from plaquette import circuit, simulator
+from plaquette import circuit, device
 
 
 def _append_equiprobable(circ: stim.Circuit, p: float, steps):
@@ -91,7 +92,7 @@ def circuit_to_stim(circ: circuit.Circuit) -> tuple[stim.Circuit, list[bool]]:
     return res, meas_is_erasure
 
 
-class StimSimulator(simulator.AbstractSimulator):
+class StimSimulator(device.AbstractSimulator):
     """Circuit simulator using Stim as backend.
 
     .. automethod:: __init__
@@ -149,20 +150,26 @@ class StimSimulator(simulator.AbstractSimulator):
         self.stim_circ, is_erasure = circuit_to_stim(self.circ)
         self.meas_is_erasure = np.array(is_erasure)
         if stim_seed is None:
-            stim_seed = plaquette.rng.integers(0, 2**63)
-        self._compile_stim_sampler(stim_seed)
+            self.stim_seed = plaquette.rng.integers(0, 2**63)
+        else:
+            self.stim_seed = stim_seed
+        self.reset()
 
-    def _compile_stim_sampler(self, stim_seed: int):
-        """Compile a stim sampler."""
-        self.stim_seed = stim_seed
-        self.stim_sampler = self.stim_circ.compile_sampler(seed=stim_seed)
+    def reset(self, new_seed: Optional[int] = None):
+        """Compile a new Stim sampler.
+
+        Args:
+            new_seed: if not ``None``, this will be set to :attr:`stim_seed`
+                and used to build the new sampler.
+        """
+        if new_seed is not None:
+            self.stim_seed = new_seed
+        self.stim_sampler = self.stim_circ.compile_sampler(seed=self.stim_seed)
         # Erase current batch (if any)
         self.batch = None
         self.batch_remaining = 0
 
-    def get_sample(  # noqa: D102
-        self, *, after_reset=True
-    ) -> tuple[np.ndarray, np.ndarray]:
+    def run(self, *, after_reset=True):  # noqa: D102
         # Sample a new match if necessary.
         if not after_reset:
             raise ValueError("Stim does not allow sampling without resetting")
@@ -170,11 +177,15 @@ class StimSimulator(simulator.AbstractSimulator):
             self.batch = self.stim_sampler.sample(shots=self.batch_size)
             self.batch_remaining = self.batch_size
         assert self.batch is not None
-        all_meas = self.batch[-self.batch_remaining]
+        self.all_meas = self.batch[-self.batch_remaining]
         self.batch_remaining -= 1
+
+    def process_results(  # noqa: D102
+        self,
+    ) -> tuple[np.ndarray, t.Optional[np.ndarray]]:
         # Split results into actual measurements and erasure indications
-        meas = all_meas[~self.meas_is_erasure]
-        qubits_erased = all_meas[self.meas_is_erasure]
+        meas = self.all_meas[~self.meas_is_erasure]
+        qubits_erased = self.all_meas[self.meas_is_erasure]
         if len(qubits_erased) == 0:
             qubits_erased = None
         return meas, qubits_erased

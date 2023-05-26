@@ -86,17 +86,17 @@ methods above that can be later simulated just as if they were made from the
 internal :term:`QECC` defined in ``plaquette``.
 
 .. note:: if you want to dig in and analyse the internal :class:`.QuantumState`
-   of the :class:`.CircuitSimulator`, you can do so by inspecting the
-   :attr:`~.CircuitSimulator.state` attribute. If you are *even more*
-   adventurous, this state has a :attr:`~.QuantumState.tableau` attribute
-   which is the lowest-level representation of the stabiliser state, which you
-   can manipulate with the functions from the :mod:`.pauli` module.
+   of underlying backend when using ``"clifford"`` backend, you can do so by
+   inspecting the :attr:`~.Device.state` attribute. If you are *even more*
+   adventurous, this state has a :attr:`~.QuantumState.tableau` attribute which
+   is the lowest-level representation of the stabiliser state, which you can
+   manipulate with the functions from the :mod:`.pauli` module.
 
-.. hint:: :class:`.CircuitSimulator` implements the Python iterator protocol,
+.. hint:: the ``"clifford"`` backend implements the Python iterator protocol,
    which allows you to step through each instruction individually and take
    action at every step. This is useful if you want to implement some
-   complicated logic in the circuit which is not easy (or outright possible)
-   to do with the available :ref:`circuit instruction <circuits-ref>`.
+   complicated logic in the circuit which is not easy (or outright possible) to
+   do with the available :ref:`circuit instruction <circuits-ref>`.
 
 4-qubit GHZ state
 ~~~~~~~~~~~~~~~~~
@@ -107,7 +107,7 @@ it 10 times.
 .. note:: The total number of qubits is implicitly determined from the
    qubits on which the gates act.
 
->>> from plaquette.simulator import circuitsim
+>>> from plaquette import circuit, Device
 >>> circ = circuit.Circuit.from_str("""
 ... R 0 1 2 3
 ... H 0
@@ -116,9 +116,10 @@ it 10 times.
 ... CX 2 3
 ... M 0 1 2 3
 ... """)
->>> sim = circuitsim.CircuitSimulator(circ)
+>>> dev = Device("clifford")
 >>> for _ in range(10):
-...     raw, _ = sim.get_sample()
+...     dev.run(circ)
+...     raw, _ = dev.get_sample()
 ...     print(raw)
 [0 0 0 0]
 [1 1 1 1]
@@ -151,10 +152,11 @@ Correlated errors
 >>> c.e_pauli2(*probab[1:], 0, 1)
 >>> c.M(0, 1)
 >>>
->>> sim = circuitsim.CircuitSimulator(circ)
+>>> dev = Device("clifford")
 >>>
 >>> for _ in range(10):
-...     raw, _ = sim.get_sample()
+...     dev.run(circ)
+...     raw, _ = dev.get_sample()
 ...     print(raw)
 [0 0]
 [1 1]
@@ -185,10 +187,11 @@ erasure channel was applied or not is heralded in ``erasure``.
 >>> for i in range(n_qubits):
 ...     circ.append("M", i)
 >>>
->>> sim = circuitsim.CircuitSimulator(circ)
+>>> dev = Device("clifford")
 >>>
 >>> for _ in range(5):
-...     raw, erasure = sim.get_sample()
+...     dev.run(circ)
+...     raw, erasure = dev.get_sample()
 ...     print(
 ...         "Erased:             ", erasure.astype(int),
 ...         "Sum:", erasure.sum()
@@ -239,19 +242,20 @@ First, we create a circuit with the :class:`.CircuitBuilder`
 
 Then, we simulate it.
 
-.. important:: Creating a simulator does not actually run anything. You can
-   use :meth:`.CircuitSimulator.get_sample` to actually run the circuit,
-   even if you have no measurement gates set up.
+.. important:: Creating a device does not actually run anything. You can use
+   :meth:`.Device.run` to actually run the circuit, followed by calling
+   :meth:`.Device.get_sample` even if you have no measurement gates set up.
 
->>> sim = circuitsim.CircuitSimulator(circ = circ)
->>> sim.get_sample()  # used to actually run the circuit,
+>>> dev = Device("clifford")
+>>> dev.run(circ)  # used to actually run the circuit
+>>> dev.get_sample()
 (array([], dtype=uint8), None)
 
-Now we can print the internal simulator state a a list of stabilisers that
+Now we can print the internal backend state as a list of stabilisers that
 define such state
 
 >>> from plaquette.pauli import state_to_stabiliser_string
->>> d, s = state_to_stabiliser_string(sim.state.tableau, show_identities=True)
+>>> d, s = state_to_stabiliser_string(dev.state.tableau, show_identities=True)
 >>> print("Stabilizers: ", s)
 Stabilizers:  ['+XZI', '+ZXZ', '+IZX']
 
@@ -262,7 +266,7 @@ A classic: the teleportation circuit
 
 .. sectionauthor:: Matteo Santandrea <matteo@qc.design>
 
-Since ``plaquette``'s simulators only supports Clifford operations and
+Since ``plaquette``'s local backends only supports Clifford operations and
 :math:`\lvert0\rangle` initial states, we will try to teleport the
 :math:`\lvert1\rangle` initial state, using the following scheme
 
@@ -305,9 +309,10 @@ To teleport the initial state, we need to "undo" the gates, i.e. apply
 >>> # Stabilizers: <-XI, XX>
 >>> c.M(0)
 >>> # Stabilizers: <mZ, -IX>
->>> sim = circuitsim.CircuitSimulator(c)
->>> result = sim.get_sample()[0][0]
->>> d, s = state_to_stabiliser_string(sim.state.tableau, show_identities=True)
+>>> dev = Device("clifford")
+>>> dev.run(c)
+>>> result = dev.get_sample()[0][0]
+>>> d, s = state_to_stabiliser_string(dev.state.tableau, show_identities=True)
 >>> print("Measurement. Result: ", result)
 Measurement. Result:  1
 >>> print("Stabilizers: ", s)
@@ -319,11 +324,12 @@ Now we "undo" the gates. We first update the circuit:
 ...     c.X(1)
 >>> c.H(1)
 
-and then load it into the simulator:
+and then load it into the device:
 
->>> sim.circ = c.circ  # we have to take the circuit in the builder
->>> result = sim.get_sample()[0][0]
->>> d, s = state_to_stabiliser_string(sim.state.tableau, show_identities=True)
+>>> dev.circuit = c.circ  # we have to take the circuit in the builder
+>>> dev.run(c.circ)
+>>> result = dev.get_sample()[0][0]
+>>> d, s = state_to_stabiliser_string(dev.state.tableau, show_identities=True)
 >>> print("Measurement. Result: ", result)
 Measurement. Result:  1
 >>> print("Stabilizers: ", s)

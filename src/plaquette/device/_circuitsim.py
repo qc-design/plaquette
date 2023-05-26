@@ -7,17 +7,17 @@ from collections.abc import Sequence
 import numpy as np
 
 import plaquette
-from plaquette import circuit, pauli, simulator
+from plaquette import circuit, device, pauli
 
 
-class CircuitSimulator(simulator.AbstractSimulator):
+class CircuitSimulator(device.AbstractSimulator):
     """QEC simulation based on Clifford circuits.
 
     This class provides a pure-Python tableau-based simulator which uses the
     representation of a stabilizer state introduced in :cite:`aaronson_improved_2004`.
 
     For a faster simulator based on a third-party package, see
-    :class:`~plaquette.simulator.stimsim.StimSimulator`.
+    :class:`~plaquette.device._stimsim.StimSimulator`.
 
     .. automethod:: __init__
     """
@@ -37,7 +37,7 @@ class CircuitSimulator(simulator.AbstractSimulator):
                 "Only a Circuit or a CircuitBuilder can be used in a simulator"
             )
         #: State object
-        self.state: simulator.QuantumState = simulator.QuantumState(
+        self.state: device.QuantumState = device.QuantumState(
             self.circ.number_of_qubits
         )
         #: Measurement results collected while running the circuit
@@ -199,42 +199,37 @@ class CircuitSimulator(simulator.AbstractSimulator):
             self.in_error = False
             self._handle_gate(name, args)
 
-    def _run_circuit(self, reset=True):
-        """Run a circuit in the simulator.
+    def run(self, *, after_reset=True):  # noqa: D102
+        if after_reset:
+            self.reset()
 
-        Args:
-            reset: if ``True``, the internal :class:`~simulator.QuantumState` will be
-                reset to the "canonical form" (i.e. the identity matrix + the all-zero
-                column vector for the sign bit).
-        """
-        if reset:
-            # The STATE needs to be linked to the number of qubits OF THE CIRCUIT,
-            # such that then self.n_qubits has the correct info. If we delete qubits
-            # from the state, and then here we call QuantumState(self.n_qubits) this
-            # number is going to be LESS than the necessary amount of qubits, because
-            # self.n_qubits depends on the STATE.
-            #
-            # This can be changed, I don't if it's a problem or source of confusion.
-            self.state = simulator.QuantumState(self.circ.number_of_qubits)
-            self.meas_results = []
-            self.erasure = []
-        for name, args in self.circ.gates:
-            self._run_gate(name, args)
+        for _ in self:
+            # Go through all instructions
+            pass
 
-    def get_sample(
-        self, *, after_reset=True
+    def process_results(  # noqa: D102
+        self,
     ) -> tuple[np.ndarray, t.Optional[np.ndarray]]:
-        """Draw a new sample from the given circuit.
-
-        Keyword Args:
-            after_reset: if ``False``, the returned measurement and erasures will still
-                contain any data from previous runs. Otherwise, both these results and
-                the internal state will be reset.
-        """
-        self._run_circuit(after_reset)
-        meas = np.array(self.meas_results, dtype="u1")
         if len(self.erasure) > 0:
             qubits_erased = np.array(self.erasure)
         else:
             qubits_erased = None
-        return meas, qubits_erased
+        return np.array(self.meas_results, dtype="u1"), qubits_erased
+
+    def reset(self):
+        """Reset the internal state of the simulator and its outputs.
+
+        Notes:
+            This will create a completely new :class:`.QuantumState` and clear
+            the attributes :attr:`meas_results` and :attr:`erasure`.
+        """
+        # The STATE needs to be linked to the number of qubits OF THE CIRCUIT,
+        # such that then self.n_qubits has the correct info. If we delete qubits
+        # from the state, and then here we call QuantumState(self.n_qubits) this
+        # number is going to be LESS than the necessary amount of qubits, because
+        # self.n_qubits depends on the STATE.
+        #
+        # This can be changed, I don't know if it's a problem or source of confusion.
+        self.state = device.QuantumState(self.circ.number_of_qubits)
+        self.meas_results = []
+        self.erasure = []
