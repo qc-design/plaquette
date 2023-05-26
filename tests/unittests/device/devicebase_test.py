@@ -1,4 +1,5 @@
-# Copyright 2023, It'sQ GmbH. All rights reserved
+# Copyright 2023, It'sQ GmbH and the plaquette contributors
+# SPDX-License-Identifier: Apache-2.0
 """Unit-tests for plaquette's Device."""
 
 import numpy as np
