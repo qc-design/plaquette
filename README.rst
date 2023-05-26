@@ -1,6 +1,10 @@
 ``plaquette``: all-encompassing quantum error-correction software
 =================================================================
 
+.. image:: https://readthedocs.org/projects/plaquette-qec/badge/?version=latest
+    :target: https://docs.plaquette.design/en/stable/?badge=stable
+    :alt: Documentation Status
+
 ``plaquette`` is a fully featured and easy-to-use library for studying quantum
 error correction and fault tolerance.
 
