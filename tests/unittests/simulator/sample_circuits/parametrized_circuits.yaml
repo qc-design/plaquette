@@ -1,0 +1,58 @@
+error-parametrize-circuits:
+  - X-error:
+      circuit-template:
+        "ERROR {} X 0\n
+        ERROR_CONTINUE X 1\n
+        ERROR_CONTINUE X 2\n
+  
+        ERROR_ELSE {}  X 3\n
+        ERROR_CONTINUE X 4\n
+        ERROR_CONTINUE X 5\n
+  
+        M 0 1 2 3 4 5"
+      params:
+        - [ 0.0, 0.0 ]
+        - [ 0.0, 1.0 ]
+        - [ 1.0, 0.0 ]
+        - [ 1.0, 1.0 ]
+      expected-output:
+        - '000000'
+        - '000111'
+        - '111000'
+        - '111000'
+
+  - Z-error:
+      circuit-template:
+        " H 0 1 2 3 4 5\n
+        ERROR {}       Z 0\n
+        ERROR_CONTINUE Z 1\n
+        ERROR_CONTINUE Z 2\n
+  
+        ERROR_ELSE {}  Z 3\n
+        ERROR_CONTINUE Z 4\n
+        ERROR_CONTINUE Z 5\n
+  
+        H 0 1 2 3 4 5\n
+        M 0 1 2 3 4 5\n"
+      params:
+        - [ 0.0, 0.0 ]
+        - [ 0.0, 1.0 ]
+        - [ 1.0, 0.0 ]
+        - [ 1.0, 1.0 ]
+      expected-output:
+        - '000000'
+        - '000111'
+        - '111000'
+        - '111000'
+#    Y-error:
+#      circuit-template-path: ""
+#      params:
+#        - [ 0.0, 0.0 ]
+#        - [ 0.0, 1.0 ]
+#        - [ 1.0, 0.0 ]
+#        - [ 1.0, 1.0 ]
+#      expected-output:
+#        - '000000'
+#        - '000111'
+#        - '111000'
+#        - '111111'

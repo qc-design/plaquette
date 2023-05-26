@@ -1,0 +1,69 @@
+[general]
+logical_op = "Z"
+qec_property = ["logical_error_rate"]
+seed = 123124
+
+[simulator]
+name = "StimSimulator"
+shots = 100000
+
+[code]
+name = "RotatedPlanarCode"
+size = 3
+rounds = 10
+
+[circuit]
+circuit_provided = false
+has_errors = false
+circuit_path = "surface17_circuit.txt"
+
+[errors.qubit_errors]
+data_path = "SpEM.csv"
+sample = true
+
+[errors.qubit_errors.single_pauli]
+paulis = ["X", "Z"]
+distribution = ["constant", "constant"]
+params = [[0.1], [0.1]]
+
+[errors.qubit_errors.erasure]
+enabled = false
+distribution = "gaussian"
+params = [0.1, 0.01]
+
+[errors.qubit_errors.fabrication]
+distribution = "user"
+enabled = false
+
+[errors.qubit_errors.measurement]
+enabled = false
+distribution = "constant"
+params = [0.1]
+
+[errors.gate_errors]
+data_path = "GateErrors.csv"
+sample = false
+load_file = false
+
+[errors.gate_errors.CZ]
+induced_errors= ["XX", "ZI"]
+distribution = ["constant", "constant"]
+params =[[0.001], [0.001]]
+
+[errors.gate_errors.CX]
+induced_errors=["ZZ", "XI"]
+distribution = ["constant", "constant"]
+params =[[0.001], [0.001]]
+
+[errors.gate_errors.H]
+induced_errors=["X", "Z"]
+distribution=["constant", "constant"]
+params = [[0.001], [0.001]]
+
+[errors.gate_errors.fabrication]
+distribution = "user"
+enabled = false
+
+[decoder]
+name = "PyMatchingDecoder"
+weighted = false

@@ -1,0 +1,13 @@
+small-codes-without-error:
+  rep-code-3-logical-0:
+    circuit-string: "CX 0 1 0 2\nM 0 1 2"
+    expected-output: "000"
+  rep-code-3-logical-1:
+    circuit-string: "X 0\nCX 0 1 0 2\nM 0 1 2"
+    expected-output: "111"
+  rep-code-5-logical-0:
+    circuit-string: "CX 0 1 0 2 0 3 0 4\nM 0 1 2 3 4"
+    expected-output: "00000"
+  rep-code-5-logical-1:
+    circuit-string: "X 0\nCX 0 1 0 2 0 3 0 4\nM 0 1 2 3 4"
+    expected-output: "11111"

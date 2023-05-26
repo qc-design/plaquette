@@ -1,0 +1,40 @@
+# See https://pre-commit.com for more information
+
+default_language_version:
+  python: python3.10
+
+ci:
+  autofix_prs: false
+
+default_stages: [commit, push]
+default_install_hook_types: [pre-commit, pre-push, commit-msg]
+exclude: (^assets/|^docs/)
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.4.0
+    hooks:
+      - id: check-case-conflict
+      - id: check-docstring-first
+  - repo: https://github.com/charliermarsh/ruff-pre-commit
+    rev: 'v0.0.264'
+    hooks:
+      - id: ruff
+        args:
+          - 'src'
+          - 'tests'
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.1.1
+    hooks:
+       - id: mypy
+         args:
+           - '--config-file'
+           - 'pyproject.toml'
+  - repo: https://github.com/psf/black
+    rev: 23.1.0
+    hooks:
+      - id: black
+  - repo: https://github.com/commitizen-tools/commitizen
+    rev: v2.42.1
+    hooks:
+      - id: commitizen

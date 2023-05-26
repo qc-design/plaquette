@@ -1,0 +1,37 @@
+[simulator]
+name = "CircuitSimulator"
+shots = 1024
+
+[code]
+name = "RotatedPlanarCode"
+size = 3
+rounds = 3
+
+[circuit]
+circuit_provided = false
+has_errors = false
+circuit_path = "/Users/varunseshadri/repos/its-q/plaquette/assets/config_tests/surface17_circuit.txt"
+
+[errors.qubit_errors]
+data_path = "/Users/varunseshadri/repos/its-q/plaquette/assets/error-csvs/SpEM.csv"
+
+[errors.qubit_errors.single_pauli]
+paulis = ["X", "Y", "Z"]
+distribution = ["user", "user", "user"]
+
+[errors.qubit_errors.erasure]
+distribution = "user"
+
+[errors.qubit_errors.measurement]
+distribution = "user"
+
+[errors.qubit_errors.fabrication]
+distribution = "user"
+
+[errors.gate_errors]
+data_path = "/Users/varunseshadri/repos/its-q/plaquette/assets/error-csvs/GateErrors.csv"
+
+[decoder]
+name = "PyMatchingDecoder"
+weighted = false
+

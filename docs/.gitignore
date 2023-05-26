@@ -1,0 +1,6 @@
+# Sphinx apidoc output
+/apidoc
+# Sphinx autosummary output (not used anymore)
+/_autosummary
+# Sphinx HTML output
+/_build

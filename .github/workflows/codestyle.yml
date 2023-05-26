@@ -1,0 +1,64 @@
+name: Code style
+on:
+  pull_request:
+    paths:
+      - '**.py'
+      - '**.rst'
+  push:
+    branches:
+      - 'main'
+    paths:
+      - '**.py'
+      - '**.rst'
+
+jobs:
+  black:
+    # Avoid to run the job twice, once on PR merge and once on the fact that this
+    # merge-event is also a push to the master branch
+    if: github.event.pull_request.merged == false || github.event_name == 'push'
+    name: Check formatting with Black
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+    - name: Run Black formatter
+      uses: psf/black@stable
+      with:
+        options: "--check --verbose --diff"
+        src: "src"
+        jupyter: false
+        version: "~= 23.0"
+  ruff_src:
+    # Avoid to run the job twice, once on PR merge and once on the fact that this
+    # merge-event is also a push to the master branch
+    if: github.event.pull_request.merged == false || github.event_name == 'push'
+    name: Check codebase style with Ruff
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+    - name: Run Ruff checks
+      uses: chartboost/ruff-action@v1
+      with:
+        version: "v0.0.264"
+        src: "./src"
+  ruff_tests:
+    # Avoid to run the job twice, once on PR merge and once on the fact that this
+    # merge-event is also a push to the master branch
+    if: github.event.pull_request.merged == false || github.event_name == 'push'
+    name: Check test cases style with Ruff
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+    - name: Run Ruff checks
+      uses: chartboost/ruff-action@v1
+      with:
+        version: "v0.0.264"
+        src: "./tests"

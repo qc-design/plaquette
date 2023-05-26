@@ -1,0 +1,5 @@
+gate,on_qubits,induced_errors,probs
+CZ,"13|1","XI|ZZ","0.1|0.1"
+H,"13|14|15|16","X|Y|Z","0.1|0.2|0.01"
+CZ,"13|2","ZI|XX","0.1|0.2"
+CZ,"13|1","YY","0.1"

@@ -1,0 +1,13 @@
+[general]
+logical_op = "X"
+qec_property = ["logical_error_rate"]
+seed = 123125
+
+[code]
+name = "RotatedPlanarCode"
+rounds = 1
+size = 3
+
+
+
+

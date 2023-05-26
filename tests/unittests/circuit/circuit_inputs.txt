@@ -1,0 +1,70 @@
+R 0 1
+H 0
+CX 0 1
+M 0 1
+
+R 0 1
+H 0 1
+M 0 1
+
+H 1
+CX 1 2
+CX 0 1
+H 0
+M 0 1 2
+
+H 1
+CX 1 2 0 1
+H 0
+M 0 1 2
+
+R 5
+H 5
+CX 5 0
+CX 5 1
+CX 5 2
+H 5
+M 5
+R 3
+H 3
+CZ 3 0
+CZ 3 1
+H 3
+M 3
+R 4
+H 4
+CZ 4 1
+CZ 4 2
+H 4
+M 4
+R 3
+H 3
+CZ 3 0
+CZ 3 1
+H 3
+M 3
+R 4
+H 4
+CZ 4 1
+CZ 4 2
+H 4
+M 4
+R 3
+H 3
+CZ 3 0
+CZ 3 1
+H 3
+M 3
+R 4
+H 4
+CZ 4 1
+CZ 4 2
+H 4
+M 4
+R 5
+H 5
+CX 5 0
+CX 5 1
+CX 5 2
+H 5
+M 5

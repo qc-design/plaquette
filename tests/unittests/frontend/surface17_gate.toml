@@ -1,0 +1,42 @@
+[errors.qubit_errors]
+data_path = "/Users/varunseshadri/repos/its-q/plaquette/assets/error-csvs/QubitError.csv"
+sample = false
+
+[errors.qubit_errors.single_pauli]
+paulis = ["X", "Y", "Z"]
+distribution = ["constant", "constant", "constant"]
+params = [[0.1], [0.1], [0.1]]
+
+[errors.qubit_errors.erasure]
+distribution = "gaussian"
+params = [0.1, 0.01]
+
+[errors.qubit_errors.fabrication]
+distribution = "user"
+enabled = false
+
+[errors.qubit_errors.measurement]
+distribution = "user"
+
+[errors.gate_errors]
+data_path = "/Users/varunseshadri/repos/its-q/plaquette/assets/error-csvs/GateErrors.csv"
+sample = false
+load_file = false
+
+[errors.gate_errors.CZ]
+induced_errors= ["XX", "ZI"]
+distribution = ["constant", "constant"]
+params =[[0.01], [0.01]]
+
+[errors.gate_errors.CX]
+induced_errors=["ZZ", "XI"]
+distribution = ["constant", "constant"]
+params =[[0.01], [0.01]]
+
+[errors.gate_errors.H]
+induced_errors=["X", "Z"]
+distribution=["gaussian", "gaussian"]
+params = [[0.1, 0.01], [0.1, 0.02]]
+
+[errors.gate_errors.fabrication]
+distribution = "user"

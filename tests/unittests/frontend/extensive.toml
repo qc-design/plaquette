@@ -1,0 +1,79 @@
+[general]
+logical_op = "Z" # the logical operator to measure
+qec_property = ["logical_error_rate"] # The QEC property to measure, currently
+                                      # only logical_error_rate is possible
+seed = 123124 # the seed for the random number generator
+
+[simulator]
+name = "StimSimulator" # The simulator to use,
+shots = 10000 # the number of shots to run the simulator for
+
+[code]
+name = "RotatedPlanarCode" # The code to use.
+size = 3 # The size of the code
+rounds = 10 # The number rounds of syndrome measurement per QEC cycle
+
+[circuit]
+circuit_provided = false
+has_errors = false
+circuit_path = "tests/unittests/frontend/rep_code_5.txt"
+
+[errors.qubit_errors]
+data_path = "tests/unittests/frontend/SpEM.csv"
+sample = true
+
+[errors.qubit_errors.X]
+enabled = false
+distribution = "user"
+
+[errors.qubit_errors.Y]
+enabled = false
+distribution = "constant"
+params = [0.1]
+
+[errors.qubit_errors.Z]
+enabled = true
+distribution = "gaussian"
+params = [0.1, 0.01]
+
+[errors.qubit_errors.erasure]
+enabled = false
+distribution = "gaussian"
+params = [0.1, 0.01]
+
+[errors.qubit_errors.fabrication]
+distribution = "user"
+enabled = false
+
+[errors.qubit_errors.measurement]
+enabled = false
+distribution = "constant"
+params = [0.1]
+
+[errors.gate_errors]
+data_path = "tests/unittests/frontend/GateErrors.csv"
+sample = false
+load_file = false
+
+[errors.gate_errors.CZ]
+induced_errors= ["XX", "ZI"]
+distribution = ["constant", "constant"]
+params =[[0.01], [0.01]]
+
+[errors.gate_errors.CX]
+induced_errors=["ZZ", "XI"]
+distribution = ["constant", "constant"]
+params =[[0.01], [0.01]]
+
+[errors.gate_errors.H]
+induced_errors=["X", "Z"]
+distribution=["constant", "constant"]
+params = [[0.01], [0.01]]
+
+[errors.gate_errors.fabrication]
+distribution = "user"
+enabled = false
+
+[decoder]
+name = "PyMatchingDecoder"
+weighted = false

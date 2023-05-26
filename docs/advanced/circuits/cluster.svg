@@ -1,0 +1,28 @@
+<svg width="61.383mm" height="23.323mm" version="1.1" viewBox="0 0 61.383 23.323" xmlns="http://www.w3.org/2000/svg">
+ <defs>
+  <marker id="b" overflow="visible" markerHeight="5.6666665" markerWidth="5.6666665" orient="auto" preserveAspectRatio="xMidYMid" viewBox="0 0 5.6666667 5.6666667">
+   <path transform="scale(.5)" d="m5 0c0 2.76-2.24 5-5 5s-5-2.24-5-5 2.3-5 5-5c2.76 0 5 2.24 5 5z" fill="context-stroke" fill-rule="evenodd" stroke="context-stroke" stroke-width="1pt"/>
+  </marker>
+  <marker id="d" overflow="visible" markerHeight="5.6666665" markerWidth="5.6666665" orient="auto" preserveAspectRatio="xMidYMid" viewBox="0 0 5.6666667 5.6666667">
+   <path transform="scale(.5)" d="m5 0c0 2.76-2.24 5-5 5s-5-2.24-5-5 2.3-5 5-5c2.76 0 5 2.24 5 5z" fill="context-stroke" fill-rule="evenodd" stroke="context-stroke" stroke-width="1pt"/>
+  </marker>
+  <marker id="c" overflow="visible" markerHeight="5.6666665" markerWidth="5.6666665" orient="auto" preserveAspectRatio="xMidYMid" viewBox="0 0 5.6666667 5.6666667">
+   <path transform="scale(.5)" d="m5 0c0 2.76-2.24 5-5 5s-5-2.24-5-5 2.3-5 5-5c2.76 0 5 2.24 5 5z" fill="context-stroke" fill-rule="evenodd" stroke="context-stroke" stroke-width="1pt"/>
+  </marker>
+  <marker id="a" overflow="visible" markerHeight="5.6666665" markerWidth="5.6666665" orient="auto" preserveAspectRatio="xMidYMid" viewBox="0 0 5.6666667 5.6666667">
+   <path transform="scale(.5)" d="m5 0c0 2.76-2.24 5-5 5s-5-2.24-5-5 2.3-5 5-5c2.76 0 5 2.24 5 5z" fill="context-stroke" fill-rule="evenodd" stroke="context-stroke" stroke-width="1pt"/>
+  </marker>
+ </defs>
+ <g transform="translate(-11.796 -15.066)" stroke-width=".26458">
+  <path d="m32.442 16.424v10.444" marker-end="url(#b)" marker-start="url(#d)" stroke="#000"/>
+  <path d="m59.317 26.728v10.444" marker-end="url(#a)" marker-start="url(#c)" stroke="#000"/>
+  <path d="m17.646 16.424h55.533" stroke="#000"/>
+  <text x="11.52186" y="18.582844" fill="#000000" font-family="'Iosevka Fixed SS04'" font-size="6.35px" stroke="#000000" xml:space="preserve"><tspan x="11.52186" y="18.582844" stroke-width=".26458">+</tspan></text>
+  <g transform="translate(0 .31326)">
+   <path d="m17.646 26.414h55.533" stroke="#000"/>
+   <text x="11.52186" y="28.573265" fill="#000000" font-family="'Iosevka Fixed SS04'" font-size="6.35px" stroke="#000000" xml:space="preserve"><tspan x="11.52186" y="28.573265" stroke-width=".26458">+</tspan></text>
+  </g>
+  <path d="m17.646 37.031h55.533" stroke="#000"/>
+  <text x="11.52186" y="39.190201" fill="#000000" font-family="'Iosevka Fixed SS04'" font-size="6.35px" stroke="#000000" xml:space="preserve"><tspan x="11.52186" y="39.190201" stroke-width=".26458">+</tspan></text>
+ </g>
+</svg>

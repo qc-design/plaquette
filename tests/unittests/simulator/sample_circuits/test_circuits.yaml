@@ -1,0 +1,38 @@
+# dict[circuit_name: str, tuple[circuit_str, exp_output]
+small_codes_without_error:
+    "rep-code-3-encode-logical0": ("CX 0 1 0 2\nM 0 1 2", "000"),
+    "rep-code-3-encode-logical1": ("X 0\nCX 0 1 0 2\nM 0 1 2", "111"),
+    "rep-code-5-encode-logical0": ("CX 0 1 0 2 0 3 0 4\nM 0 1 2 3 4", "00000"),
+    "rep-code-5-encode-logical1": ("X 0\nCX 0 1 0 2 0 3 0 4\nM 0 1 2 3 4", "11111"),
+
+#TODO: fill this with tests
+tba:
+    "steane-code": "",
+    "steane-code-with-flag": "",
+    "shor-code": "",
+    "surface-17": "",
+    "surface-49": "",
+
+#TODO: fill this with tests
+std_circuits_without_error:
+
+error_parametrize_tests:
+    "apply-X": (
+        """
+        ERROR {}       X 0
+        ERROR_CONTINUE X 1
+        ERROR_CONTINUE X 2
+        
+        ERROR_ELSE {}  X 3
+        ERROR_CONTINUE X 4
+        ERROR_CONTINUE X 5
+        
+        M 0 1 2 3 4 5
+        """,
+            (0.0, 0.0),
+            "000000",
+        ),
+    "apply-Z":
+    "apply-Y": (),
+    "apply-depolarize": (),
+}

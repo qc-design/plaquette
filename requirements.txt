@@ -1,0 +1,16 @@
+fusion-blossom>=0.2.2
+jsonschema>=4.16
+matplotlib>=3.6.2
+numpy~=1.24
+pandas>=1.5.1
+# When bumping plotly, remember to also bump plotlyjs in docs/_static/custom.js.
+plotly>=5.11.0
+pymatching>=2.0.1
+PyYAML>=6.0
+qiskit
+qiskit_qasm3_import
+pylatexenc
+seaborn>=0.12.1
+stim>=1.10.0
+toml>=0.10
+tqdm

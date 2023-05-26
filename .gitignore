@@ -1,0 +1,23 @@
+# Minimal .gitignore - to be extended as needed.
+#
+# Note: Ignores for individual files in subdirectories should be placed into
+#       a .gitignore in the subdirectory, not here. See e.g. docs/.gitignore.
+#
+# Python
+*.pyc
+*.pyo
+# Python build system
+build
+dist
+# Jupyter Notebooks
+.ipynb_checkpoints
+# MacOS
+.DS_Store
+*.h5
+# IDEs
+.idea
+.vscode
+debug
+# Tooling
+.*_cache
+[.][v]env
