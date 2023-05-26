@@ -1,7 +1,7 @@
 on:
   push:
-    tags:
-      - 'v*'
+    tags: ['*']
+  workflow_dispatch:
 jobs:
   pypi-publish:
     name: Upload release to PyPI
