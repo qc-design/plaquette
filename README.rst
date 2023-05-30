@@ -5,12 +5,9 @@
     :target: https://docs.plaquette.design/en/stable/?badge=stable
     :alt: Documentation Status
 
-.. figure:: docs/index_code.png
+.. figure:: docs/index_code_scaled.png
     :align: right
-    :scale: 50%
     :alt: Distance-5 rotated planar code
-
-    Distance-5 rotated planar code
 
 ``plaquette`` is a fully featured and easy-to-use library for studying quantum
 error correction and fault tolerance.
