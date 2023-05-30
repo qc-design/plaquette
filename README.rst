@@ -5,7 +5,7 @@
     :target: https://docs.plaquette.design/en/stable/?badge=stable
     :alt: Documentation Status
 
-.. figure:: docs/index_code_scaled.png
+.. figure:: docs/index_code.png
     :align: right
     :alt: Distance-5 rotated planar code
 

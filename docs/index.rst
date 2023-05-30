@@ -4,22 +4,9 @@
 ``plaquette`` — an all-encompassing fault-tolerance software package
 =====================================================================
 
-.. The figure on the rigth was created using the following code::
-
-        from plaquette import codes, visualizer
-
-        code = codes.RotatedPlanarCode(size=5, n_rounds=1)
-        vis = visualizer.LatticeVisualizer(code)
-        (
-            vis.draw_lattice()
-            .update_layout(width=600, height=400)
-            .update_xaxes(showgrid=False, zeroline=False)
-            .update_yaxes(showgrid=False, zeroline=False)
-        )
-
 .. figure:: index_code.png
-   :figwidth: 200px
    :align: right
+   :alt: Distance-5 rotated planar code
 
 
 ``plaquette`` is a fully featured and easy-to-use library for studying quantum
