@@ -173,3 +173,13 @@ Indices and tables
 * :ref:`glossary`
 * :ref:`modindex`
 * :ref:`search`
+
+
+Supporters
+----------
+
+``plaquette`` is developed and maintained by `QC Design <https://www.qc.design/>`_.
+``plaquette`` is also supported by the German Ministry of Education and Research
+(BMBF) via project `PhotonQ <https://www.photonq.de/>`_. An early prototype of
+``plaquette`` was developed under the support of the BMBF project
+`PhoQuant <https://www.quantentechnologien.de/forschung/foerderung/quantencomputer-demonstrationsaufbauten/phoquant.html>`_.
