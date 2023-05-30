@@ -1,9 +1,13 @@
-``plaquette``: all-encompassing quantum error-correction software
-=================================================================
+``plaquette``: an all-encompassing fault-tolerance software package
+===================================================================
 
 .. image:: https://readthedocs.org/projects/plaquette-qec/badge/?version=latest
     :target: https://docs.plaquette.design/en/stable/?badge=stable
     :alt: Documentation Status
+
+.. figure:: docs/index_code.png
+    :align: right
+    :alt: Distance-5 rotated planar code
 
 ``plaquette`` is a fully featured and easy-to-use library for studying quantum
 error correction and fault tolerance.
@@ -22,7 +26,10 @@ Installation
 ``plaquette`` is a pure Python package, so it can be easily installed via
 ``pip``::
 
-   pip install plaquette
+   pip install plaquette --pre
+
+``--pre`` is necessary while the only available release of ``plaquette`` is
+marked as alpha. We will drop this requirement soon!
 
 
 Documentation

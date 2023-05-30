@@ -1,25 +1,12 @@
 .. Copyright 2023, It'sQ GmbH and the plaquette contributors
    SPDX-License-Identifier: Apache-2.0
 
-``plaquette`` — A featured and accessible error-correction simulator
+``plaquette`` — an all-encompassing fault-tolerance software package
 =====================================================================
 
-.. The figure on the rigth was created using the following code::
-
-        from plaquette import codes, visualizer
-
-        code = codes.RotatedPlanarCode(size=5, n_rounds=1)
-        vis = visualizer.LatticeVisualizer(code)
-        (
-            vis.draw_lattice()
-            .update_layout(width=600, height=400)
-            .update_xaxes(showgrid=False, zeroline=False)
-            .update_yaxes(showgrid=False, zeroline=False)
-        )
-
 .. figure:: index_code.png
-   :figwidth: 200px
    :align: right
+   :alt: Distance-5 rotated planar code
 
 
 ``plaquette`` is a fully featured and easy-to-use library for studying quantum
@@ -35,11 +22,18 @@ experienced users alike.
 Installation
 ------------
 
-``plaquette`` can be installed like any other Python package via ``pip``::
+``plaquette`` can be installed like any other Python package via ``pip``.
+Since ``plaquette`` is currently in alpha and is published on PyPI as such,
+you need to add the ``--pre`` flag when installing via ``pip``::
 
     pip install plaquette
 
-Other wise, you can do::
+.. important::
+
+   If you install other packages along with ``plaquette`` in one single
+   command, the ``--pre`` flag will apply also to the other packages you list!
+
+Otherwise, you can do::
 
     pip install git+https://github.com/qc-design/plaquette
 
@@ -166,3 +160,13 @@ Indices and tables
 * :ref:`glossary`
 * :ref:`modindex`
 * :ref:`search`
+
+
+Supporters
+----------
+
+``plaquette`` is developed and maintained by `QC Design <https://www.qc.design/>`_.
+``plaquette`` is also supported by the German Ministry of Education and Research
+(BMBF) via project `PhotonQ <https://www.photonq.de/>`_. An early prototype of
+``plaquette`` was developed under the support of the BMBF project
+`PhoQuant <https://www.quantentechnologien.de/forschung/foerderung/quantencomputer-demonstrationsaufbauten/phoquant.html>`_.
