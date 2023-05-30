@@ -108,7 +108,7 @@ html_theme_options = {
 html_static_path = ["_static"]
 html_css_files = ["css/custom.css"]
 
-html_logo = "logo.svg"
+html_logo = "logo.png"
 
 # Pin MathJax version to enable SRI check
 mathjax_path = "https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.js"

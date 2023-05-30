@@ -1,7 +1,7 @@
 .. Copyright 2023, It'sQ GmbH and the plaquette contributors
    SPDX-License-Identifier: Apache-2.0
 
-``plaquette`` — A featured and accessible error-correction simulator
+``plaquette`` — an all-encompassing fault-tolerance software package
 =====================================================================
 
 .. The figure on the rigth was created using the following code::
@@ -35,11 +35,18 @@ experienced users alike.
 Installation
 ------------
 
-``plaquette`` can be installed like any other Python package via ``pip``::
+``plaquette`` can be installed like any other Python package via ``pip``.
+Since ``plaquette`` is currently in alpha and is published on PyPI as such,
+you need to add the ``--pre`` flag when installing via ``pip``::
 
     pip install plaquette
 
-Other wise, you can do::
+.. important::
+
+   If you install other packages along with ``plaquette`` in one single
+   command, the ``--pre`` flag will apply also to the other packages you list!
+
+Otherwise, you can do::
 
     pip install git+https://github.com/qc-design/plaquette
 
