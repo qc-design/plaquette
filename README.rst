@@ -40,8 +40,7 @@ Live pre-compiled documentation is available
 
 Alternatively, the documentation can be built from the ``master`` branch by::
 
-   cd docs
-   make clean html
+   make -C docs clean html
 
 and the build files will be available in the ``docs/_build/html`` directory.
 
