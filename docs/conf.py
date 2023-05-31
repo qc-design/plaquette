@@ -100,6 +100,8 @@ html_theme_options = {
     "source_repository": "https://github.com/qc-design/plaquette/",
     "source_branch": "main",
     "source_directory": "docs/",
+    "light_logo": "logo_light.png",  # relative to html_static_path
+    "dark_logo": "logo_dark.png",
 }
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
