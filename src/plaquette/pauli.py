@@ -1157,7 +1157,7 @@ def string_to_state(
                 raise ValueError(
                     f"Destabiliser {j} does not commute with stabiliser {i}"
                 )
-    return np.vstack((binary_destabilisers, binary_stabilisers), dtype="u1")
+    return np.vstack((binary_destabilisers, binary_stabilisers)).astype("u1")
 
 
 def tensor_product(*operators: Tableau) -> Tableau:
@@ -1242,7 +1242,7 @@ def tensor_product(*operators: Tableau) -> Tableau:
             return np.hstack((c, csig[None, :].T))
         else:
             csig = asig ^ bsig
-            return np.hstack((ax, bx, az, bz, csig), dtype="u1")
+            return np.hstack((ax, bx, az, bz, csig)).astype("u1")
 
 
 def reset_qubits_to_eigenstate(
