@@ -5,6 +5,7 @@ on:
       - 'docs/**'
       - 'src/**'
       - 'tests/**'
+      - 'requirements*.txt'
 
 jobs:
   unit_tests:

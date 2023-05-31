@@ -6,12 +6,14 @@ on:
     paths:
       - 'src/**'
       - 'tests/**'
+      - 'requirements*.txt'
   push:
     branches:
       - 'main'
     paths:
       - 'src/**'
       - 'tests/**'
+      - 'requirements*.txt'
 jobs:
   regression_tests:
     # Avoid to run the job twice, once on PR merge and once on the fact that this
