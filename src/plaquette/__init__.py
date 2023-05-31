@@ -26,7 +26,7 @@ import numpy as np
 
 from plaquette.device import Device  # noqa: F401
 
-__version__ = "0.0.1a1"
+__version__ = "0.0.1a2"
 
 #: Random number generator (specifically :func:`numpy.random.Generator.default_rng`)
 #:
