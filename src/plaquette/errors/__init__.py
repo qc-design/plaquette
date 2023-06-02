@@ -829,7 +829,7 @@ class ErrorData:  # noqa: D101
             ...     errs.gate_errors_dict, "X"
             ... )
             >>> print(circ.gates[:5])
-            [('H', (0,)), ('M', (0,)), ('H', (1,)), ('M', (1,)), ('H', (2,))]
+            [('H', (0,)), ('M', (0,)), ('H', (0,)), ('H', (1,)), ('M', (1,))]
         """
         errordata = dict()
         if self.enabled_gate_errors:
