@@ -546,7 +546,7 @@ to speed things up and calculate 1000 repetitions per data point.
    data = {}
    sizes = [11, 13, 15, 17]
    pauli_x_rates = np.linspace(0.01, 0.25, 20)
-   logical_op = "X"
+   logical_op = "Z"
    reps = 2**14
    for sz in sizes:
        data[sz] = {}
@@ -560,10 +560,10 @@ to speed things up and calculate 1000 repetitions per data point.
            }
            circuit = generate_qec_circuit(code, qed, {}, logical_op)
            device = Device("stim")
-           device.run(circuit)
            decoder = UnionFindDecoder.from_code(code, qed, weighted=True)
            successes = 0
            for _ in range(reps):
+               device.run(circuit)
                raw_results, erasure = device.get_sample()
                sample = MeasurementSample.from_code_and_raw_results(
                   code, raw_results, erasure
