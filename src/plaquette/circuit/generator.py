@@ -254,14 +254,24 @@ class QECCircuitGenerator:
                 for edge in op.edges:
                     dataqubit = edge.data.equbit_idx
                     match edge.factor:
+                        case lattice.Pauli.Z:
+                            self.apply_gate_and_error(
+                                "M", dataqubit, None, with_errors=False
+                            )
                         case lattice.Pauli.X:
-                            # Apply Hadamard gate, since we measure in Z-basis
+                            # Apply Hadamard gate before and after the measurement
+                            # because the "M" operator measures in the Z-basis.
+                            self.apply_gate_and_error(
+                                "H", dataqubit, None, with_errors=False
+                            )
+                            self.apply_gate_and_error(
+                                "M", dataqubit, None, with_errors=False
+                            )
                             self.apply_gate_and_error(
                                 "H", dataqubit, None, with_errors=False
                             )
                         case lattice.Pauli.Y:
                             raise ValueError("Pauli Y not implemented yet")
-                    self.apply_gate_and_error("M", dataqubit, None, with_errors=False)
             else:
                 self.measure_op(op, with_errors=False)
 
