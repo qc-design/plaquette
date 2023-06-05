@@ -564,7 +564,8 @@ use the same symbology for data-qubits, logical gates on the qubit,
 and entangling gates as in the previous representation. The only
 difference is that now we have two types of ancillas: :math:`X`-type
 ancillas, represented by the blue tilted crosses, and :math:`Z`-type
-ancillas, represented by the green crosses.
+ancillas, represented by the green crosses (in literature and in ``plaquette``
+these are often referred to as A and B stabilizers, or "primal" and "dual").
 
 >>> vis = visualizer.LatticeVisualizer(planar_code)
 >>> vis.draw_lattice(height=300)
