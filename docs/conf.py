@@ -1,4 +1,4 @@
-# Copyright 2023, It'sQ GmbH and the plaquette contributors
+# Copyright 2023, QC Design GmbH and the plaquette contributors
 # SPDX-License-Identifier: Apache-2.0
 # Configuration file for the Sphinx documentation builder.
 #
@@ -21,8 +21,8 @@ sys.path.insert(0, str(pathlib.Path(__file__).absolute().parent.parent / "src"))
 # -- Project information -----------------------------------------------------
 
 project = "plaquette"
-copyright = "2022, It'sQ GmbH"
-author = "It'sQ GmbH"
+copyright = "2022, QC Design GmbH"
+author = "QC Design GmbH"
 url = "https://docs.plaquette.design"
 
 
