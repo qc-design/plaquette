@@ -396,14 +396,13 @@ operators.
 
 .. caution::
 
-   Drawing a single sample will make the device run through the entire
-   circuit without stopping and will keep accumulating measurement results
+   By default, a device with a local backend will reset itself such that
+   running it will make it generate a sample from a clean state. The
+   ``clifford`` backend supports also runing *without* resetting its internal
+   state and will keep accumulating measurement results
    such that, at each new sample, ``raw_results`` and ``erasure`` will have
-   *all* results from all samples, and the internal quantum state will be
-   whatever it was after the previous circuit finished running. If you want to
-   generate many samples starting always from a clean state, you can call
-   ``device.get_sample(after_reset=True)`` instead. This will reset the
-   corresponding internal attributes of local backends used.
+   *all* results from all runs, and the internal quantum state will be
+   whatever it was after the previous circuit finished running.
 
 Since we didn't manually make this circuit, but rather it was generated from
 a code, we make sense of the single values in this array by "unpacking it"
@@ -433,8 +432,9 @@ decoders and give you a uniform interface. I mean, a decoder needs to do
 *one* thing: tell you which correction operator to apply in order to correct
 errors, if any. This is where the
 :mod:`~plaquette.decoders.decoderbase.DecoderInterface` comes into play. This
-is the common interface to all decoders ``plaquette`` supports. Currently,
-``plaquette`` supports the following decoders:
+is the common interface to all decoders ``plaquette`` supports.
+
+Currently, ``plaquette`` supports the following decoders:
 
 :class:`~.interfaces.PyMatchingDecoder`
    which is an interface to
@@ -442,14 +442,12 @@ is the common interface to all decoders ``plaquette`` supports. Currently,
 :class:`~.interfaces.FusionBlossomDecoder`
    which is an interface to
    `fusion-blossom <https://github.com/yuewuo/fusion-blossom>`_;
-:class:`~.interfaces.UnionFindDecoder`
-   which is a custom implementation of the Union Find
-   :cite:`delfosse_almost-linear_2021` algorithm written in Python.
-
-
-In particular, the :class:`~plaquette.decoders.interfaces.UnionFindDecoder` decoder,
-is a unique feature of ``plaquette``, and it's the only decoder that supports
-erasure errors, which we have defined above.
+:class:`~plaquette_unionfind.unionfind.UnionFindDecoderInterface`
+   which is an interface to an extremely fast implementation of the
+   :cite:`delfosse_almost-linear_2021` algorithm. It's developed in tandem with
+   ``plaquette`` and you can find its source code
+   `here <https://github.com/qc-design/plaquette-unionfind>`_. *This needs to
+   be installed separately!* A simple ``pip install plaquette_unionfind`` will do.
 
 All decoders, being a specialization of the generic :class:`.DecoderInterface`,
 have the same two important user-facing methods:
@@ -459,13 +457,13 @@ and the second will try to calculate the necessary correction operator given
 the results of the simulation and error data information.
 
 .. hint:: *All* decoders have *the same* public-facing API, meaning that they
-   are drop-in replacement for one-another. In the following snippet,
-   replacing ``UnionFindDecoder`` with ``PyMatchingDecoder`` or with
+   are drop-in replacement for one-another. In the following snippets,
+   replacing ``UnionFindDecoderInterface`` with ``PyMatchingDecoder`` or with
    ``FusionBlossomDecoder`` is enough to use a radically different decoding
    algorithm on *the same* input code and measurement outcomes!
 
->>> from plaquette.decoders import UnionFindDecoder
->>> decoder = UnionFindDecoder.from_code(code, qed, weighted=True)
+>>> from plaquette_unionfind import UnionFindDecoderInterface as UnionFindDecoder
+>>> decoder = UnionFindDecoder.from_code(code, qed, weighted=False)
 >>> correction = decoder.decode(sample.erased_qubits, sample.syndrome)
 >>> correction  # doctest: +ELLIPSIS
 array([...], dtype=uint8)
@@ -509,13 +507,14 @@ error rate*.
 ...     device.run(circuit)
 ...     raw, erasure = device.get_sample()
 ...     results = MeasurementSample.from_code_and_raw_results(code, raw, erasure)
+...     decoder = UnionFindDecoder.from_code(code, qed, weighted=False)
 ...     correction = decoder.decode(results.erased_qubits, results.syndrome)
 ...     if check_success(
 ...         code, correction, results.logical_op_toggle, logical_operator
 ...     ):
 ...         successes += 1
 >>> 1 - successes / reps # doctest: +ELLIPSIS
-0.038...
+0.024...
 
 If we combine this with changing the error rates and the size of the code, we
 can calculate the threshold of the code. We can switch to the ``"stim"``
@@ -578,6 +577,7 @@ backend to speed things up and calculate thousands of repetitions per data point
    plt.xlabel("Depolarization probability")
    plt.ylabel("Logical error rate")
    plt.legend()
+   plt.show()
 
 .. figure:: qs_threshold.svg
    :align: center
