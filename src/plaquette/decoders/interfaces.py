@@ -43,9 +43,8 @@ class UnionFindNoWeights(decoderbase.DecoderInterface):
 class UnionFindDecoder(decoderbase.DecoderInterface):
     """plaquette union find decoder, with support for weights.
 
-    See :class:`.decoderbase.DecoderInterface` for supported methods.
-
-    This is an interface to :class:`.unionfind_interfaces.UnionFindDecoder`.
+    .. deprecated:: 0.0.1a2
+        Use the CPP implementation at https://github.com/qc-design/plaquette-unionfind
     """
 
     _decoder_cls = unionfind_interfaces.UnionFindDecoder
