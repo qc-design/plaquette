@@ -1,4 +1,4 @@
-# Copyright 2023, It'sQ GmbH and the plaquette contributors
+# Copyright 2023, QC Design GmbH and the plaquette contributors
 # SPDX-License-Identifier: Apache-2.0
 """Interface to Stim for use as circuit simulator.
 
