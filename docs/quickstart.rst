@@ -518,8 +518,8 @@ error rate*.
 0.038...
 
 If we combine this with changing the error rates and the size of the code, we
-can calculate the threshold of the code. We can switch to the `Stim`_ simulator
-to speed things up and calculate 1000 repetitions per data point.
+can calculate the threshold of the code. We can switch to the ``"stim"``
+backend to speed things up and calculate thousands of repetitions per data point.
 
 .. warning:: The following script will take a fairly **long** time if you run
    it sequentially! We recommend using something like
@@ -536,18 +536,18 @@ to speed things up and calculate 1000 repetitions per data point.
    import plaquette
    from plaquette.circuit.generator import generate_qec_circuit
    from plaquette.codes import LatticeCode
-   from plaquette.decoders import UnionFindDecoder
    from plaquette.device import MeasurementSample
    from plaquette.decoders.decoderbase import check_success
 
+   from plaquette_unionfind import UnionFindDecoderInterface as UnionFindDecoder
 
    plaquette.rng = np.random.default_rng(seed=1234567890)
 
    data = {}
    sizes = [11, 13, 15, 17]
-   pauli_x_rates = np.linspace(0.01, 0.25, 20)
+   pauli_x_rates = np.linspace(0.01, 0.25, 10)
    logical_op = "X"
-   reps = 2**14
+   reps = 2**13
    for sz in sizes:
        data[sz] = {}
        code = LatticeCode.make_planar(n_rounds=1, size=sz)
@@ -560,14 +560,14 @@ to speed things up and calculate 1000 repetitions per data point.
            }
            circuit = generate_qec_circuit(code, qed, {}, logical_op)
            device = Device("stim")
-           device.run(circuit)
-           decoder = UnionFindDecoder.from_code(code, qed, weighted=True)
            successes = 0
            for _ in range(reps):
+               device.run(circuit)
                raw_results, erasure = device.get_sample()
                sample = MeasurementSample.from_code_and_raw_results(
                   code, raw_results, erasure
                )
+               decoder = UnionFindDecoder.from_code(code, qed, weighted=False)
                correction = decoder.decode(sample.erased_qubits, sample.syndrome)
                if check_success(
                    code, correction, sample.logical_op_toggle, logical_op
