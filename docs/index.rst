@@ -126,11 +126,9 @@ Overall structure
    Performant classical decoding algorithms, either interfaces to existing
    3rd-party libraries or our own implementation.
 
-Additionally, ``plaquette`` offers support modules for graph manipulation
-(:mod:`plaquette.syngraph`)and visualisation (:mod:`plaquette.visualizer`).
-These modules further enhance the functionality and user experience of the
-library.
-
+Additionally, ``plaquette`` offers support for visualisation of quantum
+error-correction codes and associated syndromes (:mod:`plaquette.visualizer`),
+further enhancing the functionality and user experience of the library.
 
 .. toctree::
    :caption: Usage guides
