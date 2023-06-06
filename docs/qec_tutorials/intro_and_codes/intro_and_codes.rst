@@ -380,7 +380,8 @@ represent :math:`CNOT` gates, the green dashed lines represent
 :math:`CZ` gates, and the yellow stars represent the logical operators.
 
 >>> vis = visualizer.LatticeVisualizer(repetition_code)
->>> vis.draw_lattice(height=300)
+>>> vis.draw_lattice(height=300)  # doctest: +ELLIPSIS
+Figure({...
 
 .. figure:: rep3_code.png
 
@@ -440,7 +441,9 @@ following errors:
 -  ``{2: ["x"]}``
 
 >>> syndrome = get_syndrome_from_deterministic_error(code = repetition_code, qubit_errors = {0:["x"]})
->>> vis.draw_latticedata(height=300, syndrome=syndrome)
+>>> vis.draw_latticedata(height=300, syndrome=syndrome)  # doctest: +ELLIPSIS
+Figure({...
+
 
 .. figure:: rep3_syn.png
 
@@ -568,7 +571,9 @@ ancillas, represented by the green crosses (in literature and in ``plaquette``
 these are often referred to as A and B stabilizers, or "primal" and "dual").
 
 >>> vis = visualizer.LatticeVisualizer(planar_code)
->>> vis.draw_lattice(height=300)
+>>> vis.draw_lattice(height=300)  # doctest: +ELLIPSIS
+Figure({...
+
 
 .. figure:: planar_code.png
 
@@ -594,7 +599,9 @@ exist some ways of coming up with accurate corrections fast).
 -  ``{i: ["y"]}`` for any ``i`` between 0 and :math:`d^2 + (d-1)^2 -1`.
 
 >>> syndrome = get_syndrome_from_deterministic_error(planar_code, {0: ["x"]})
->>> vis.draw_latticedata(height=300, syndrome=syndrome)
+>>> vis.draw_latticedata(height=300, syndrome=syndrome)  # doctest: +ELLIPSIS
+Figure({...
+
 
 .. figure:: planar_det_syn.png
 
@@ -706,7 +713,9 @@ even some cases where no error is applied.
 ...     "pauli": {6: dict(x=0.2, y=0.2, z=0.2)}
 ... }
 >>> syndrome = get_syndrome_from_random_error(planar_code, qed)
->>> vis.draw_latticedata(height=300, syndrome=syndrome)
+>>> vis.draw_latticedata(height=300, syndrome=syndrome)  # doctest: +ELLIPSIS
+Figure({...
+
 
 .. figure:: planar_rand_syn.png
 
@@ -769,7 +778,9 @@ We can get a rotated planar code from ``plaquette`` by calling:
 As with the other codes, we can also have a look at it:
 
 >>> vis = visualizer.LatticeVisualizer(rotated_planar_code)
->>> vis.draw_lattice(height=300)
+>>> vis.draw_lattice(height=300)  # doctest: +ELLIPSIS
+Figure({...
+
 
 .. figure:: rot3_code.png
 
@@ -789,7 +800,9 @@ learn how does an error on each qubit affects the syndrome.
 -  ``{i: ["y"]}`` for any ``i`` between 0 and :math:`d^2-1`.
 
 >>> syndrome = get_syndrome_from_deterministic_error(rotated_planar_code, {0: ["x"]})
->>> vis.draw_latticedata(height=300, syndrome=syndrome)
+>>> vis.draw_latticedata(height=300, syndrome=syndrome)  # doctest: +ELLIPSIS
+Figure({...
+
 
 .. figure:: rot3_det_syn.png
 
@@ -822,7 +835,9 @@ and comprehend the complexity of the topic.
 ...     "pauli": {i: dict(x=0.1, y=0.1, z=0.1) for i in range(rotated_planar_code.n_data_qubits)}
 ... }
 >>> syndrome = get_syndrome_from_random_error(rotated_planar_code, qed)
->>> vis.draw_latticedata(height=300, syndrome=syndrome)
+>>> vis.draw_latticedata(height=300, syndrome=syndrome)  # doctest: +ELLIPSIS
+Figure({...
+
 
 .. figure:: rot3_rand_syn.png
 
@@ -860,7 +875,9 @@ native support for it:
 
 >>> toric_code = LatticeCode.make_toric(size=3, n_rounds=1)
 >>> vis = visualizer.LatticeVisualizer(toric_code)
->>> vis.draw_lattice(height=350)
+>>> vis.draw_lattice(height=350)  # doctest: +ELLIPSIS
+Figure({...
+
 
 .. figure:: tor3_code.png
 
@@ -878,7 +895,9 @@ error on each individual qubit.
 -  ``{i: ["y"]}`` for any ``i`` between 0 and :math:`2d^2-1`.
 
 >>> syndrome = get_syndrome_from_deterministic_error(toric_code, {0: ["x"]}, logical_ops="XX")
->>> vis.draw_latticedata(height=350, syndrome=syndrome)
+>>> vis.draw_latticedata(height=350, syndrome=syndrome)  # doctest: +ELLIPSIS
+Figure({...
+
 
 .. figure:: tor3_det_syn.png
 
@@ -920,7 +939,9 @@ see how stabilizers might be toggled in a real quantum device.
 ...     "pauli": {i: dict(x=0.1, y=0.1, z=0.1) for i in range(toric_code.n_data_qubits)}
 ... }
 >>> syndrome = get_syndrome_from_random_error(toric_code, qed, logical_ops="XX")
->>> vis.draw_latticedata(height=300, syndrome=syndrome)
+>>> vis.draw_latticedata(height=300, syndrome=syndrome)  # doctest: +ELLIPSIS
+Figure({...
+
 
 .. figure:: tor3_rand_syn.png
 

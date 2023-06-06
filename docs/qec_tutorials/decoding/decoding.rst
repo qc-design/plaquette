@@ -82,8 +82,9 @@ First of all, we import the modules that we need from ``plaquette``.
 >>> from plaquette.circuit.generator import generate_qec_circuit
 >>> from plaquette import pauli
 >>> planar_3 = LatticeCode.make_planar(size=3, n_rounds=1)
->>> vis = LatticeVisualizer(code)
->>> vis.draw_lattice(height=300)
+>>> vis = LatticeVisualizer(planar_3)
+>>> vis.draw_lattice(height=300)  # doctest: +ELLIPSIS
+Figure({...
 
 .. figure:: planar3_code.png
 
@@ -106,7 +107,9 @@ the qubit with index :math:`7`.
 >>> syndrome = np.array([1, 0, 0, 0, 1, 1, 0, 0, 0, 1, 0, 0])
 >>> correction_dict = {3: "X", 7: "Z"}
 >>> correction_operator = pauli.dict_to_pauli(correction_dict, planar_3.n_data_qubits)
->>> vis.draw_latticedata(height=300, syndrome=syndrome, correction = [correction_operator])
+>>> vis.draw_latticedata(height=300, syndrome=syndrome, correction = [correction_operator])  # doctest: +ELLIPSIS
+Figure({...
+
 
 .. figure:: planar3_syn37.png
 
@@ -119,14 +122,18 @@ corrections:
 >>> syndrome = np.array([0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1])
 >>> correction_dict = {6: "X", 9: "X"}
 >>> correction_operator = pauli.dict_to_pauli(correction_dict, planar_3.n_data_qubits)
->>> vis.draw_latticedata(height=300, syndrome=syndrome, correction = [correction_operator])
+>>> vis.draw_latticedata(height=300, syndrome=syndrome, correction = [correction_operator])  # doctest: +ELLIPSIS
+Figure({...
+
 
 .. figure:: planar3_syn69.png
 
 >>> syndrome = np.array([0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1])
 >>> correction_dict = {8: "X", 11: "X"}
 >>> correction_operator = pauli.dict_to_pauli(correction_dict, planar_3.n_data_qubits)
->>> vis.draw_latticedata(height=300, syndrome=syndrome, correction = [correction_operator])
+>>> vis.draw_latticedata(height=300, syndrome=syndrome, correction = [correction_operator])  # doctest: +ELLIPSIS
+Figure({...
+
 
 .. figure:: planar3_syn811.png
 
@@ -148,14 +155,16 @@ that we can choose:
 >>> syndrome = np.array([0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0])
 >>> correction_dict = {0: "Z", 10: "Z"}
 >>> correction_operator = pauli.dict_to_pauli(correction_dict, planar_3.n_data_qubits)
->>> vis.draw_latticedata(height=300, syndrome=syndrome, correction = [correction_operator])
+>>> vis.draw_latticedata(height=300, syndrome=syndrome, correction = [correction_operator])  # doctest: +ELLIPSIS
+Figure({...
 
 .. figure:: planar3_corr010.png
 
 >>> syndrome = np.array([0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0])
 >>> correction_dict = {5: "Z"}
 >>> correction_operator = pauli.dict_to_pauli(correction_dict, planar_3.n_data_qubits)
->>> vis.draw_latticedata(height=300, syndrome=syndrome, correction = [correction_operator])
+>>> vis.draw_latticedata(height=300, syndrome=syndrome, correction = [correction_operator])  # doctest: +ELLIPSIS
+Figure({...
 
 .. figure:: planar3_corr5.png
 
@@ -212,7 +221,8 @@ Consider, for example, the logical :math:`\bar{Z}` on a planar code of distance
 
 >>> correction_dict = {0: "Z", 5: "Z", 10: "Z"}
 >>> correction_operator = pauli.dict_to_pauli(correction_dict, planar_3.n_data_qubits)
->>> vis.draw_latticedata(height=300, correction = [correction_operator])
+>>> vis.draw_latticedata(height=300, correction = [correction_operator])  # doctest: +ELLIPSIS
+Figure({...
 
 .. figure:: planar3_logop.png
 
@@ -224,7 +234,8 @@ seems a little bit different:
 
 >>> correction_dict = {0: "Z", 5: "Z", 8: "Z", 11: "Z"}
 >>> correction_operator = pauli.dict_to_pauli(correction_dict, planar_3.n_data_qubits)
->>> vis.draw_latticedata(height=300, correction = [correction_operator])
+>>> vis.draw_latticedata(height=300, correction = [correction_operator])  # doctest: +ELLIPSIS
+Figure({...
 
 .. figure:: planar3_logop_bent.png
 
@@ -261,7 +272,8 @@ errors can act on each of the qubits (see note below). Thus, there are :math:`26
 edges, :math:`13` for the :math:`X` errors and :math:`13` for the :math:`Z` errors.
 
 >>> syndrome = np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1])  # little hack to "highlight" the syndrome nodes/vertices
->>> vis.draw_latticedata(height=300, syndrome=syndrome)
+>>> vis.draw_latticedata(height=300, syndrome=syndrome)  # doctest: +ELLIPSIS
+Figure({...
 
 .. figure:: planar3_syn_all_toggled.png
 
@@ -312,7 +324,8 @@ table of edges and see that they represent the operators :math:`Z_5` and :math:`
 which is our correction.
 
 >>> syndrome = np.array([0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 1, 1])
->>> vis.draw_latticedata(height=300, syndrome=syndrome)
+>>> vis.draw_latticedata(height=300, syndrome=syndrome)  # doctest: +ELLIPSIS
+Figure({...
 
 .. figure:: syn_ex1.png
 
@@ -326,7 +339,8 @@ We could have also chosen the edges :math:`(2, 7)` and :math:`(7, 8)`, which giv
 correction :math:`Z_5Z_8`.
 
 >>> syndrome = np.array([0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0])
->>> vis.draw_latticedata(height=300, syndrome=syndrome)
+>>> vis.draw_latticedata(height=300, syndrome=syndrome)  # doctest: +ELLIPSIS
+Figure({...
 
 .. figure:: syn_ex2.png
 
@@ -348,7 +362,8 @@ we choose is :math:`(3, 12)`. This edge represents an error toggling only the th
 vertex, :math:`Z_1`.
 
 >>> syndrome = np.array([0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0])
->>> vis.draw_latticedata(height=300, syndrome=syndrome)
+>>> vis.draw_latticedata(height=300, syndrome=syndrome)  # doctest: +ELLIPSIS
+Figure({...
 
 .. figure:: syn_dangling.png
 
@@ -362,7 +377,8 @@ dangling edges: :math:`(2, 12)` and :math:`(8, 12)`, by pairing each syndrome ve
 with the open vertex. The correction is given by :math:`Z_0Z_{11}`.
 
 >>> syndrome = np.array([0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0])
->>> vis.draw_latticedata(height=300, syndrome=syndrome)
+>>> vis.draw_latticedata(height=300, syndrome=syndrome)  # doctest: +ELLIPSIS
+Figure({...
 
 .. figure:: syn_dangling2.png
 
@@ -466,12 +482,12 @@ sample, which also includes a list of the erased qubits (for our current conditi
 none are erased, but the decoder needs this information).
 
 >>> def get_sample_random(code, qed, logical_ops="X"):
->>>     circuit = generate_qec_circuit(code, qed, {}, logical_ops)
->>>     dev = Device("clifford")
->>>     dev.run(circuit)
->>>     raw_results, erasure = dev.get_sample()
->>>     sample = MeasurementSample.from_code_and_raw_results(code, raw_results, erasure)
->>>     return sample
+...     circuit = generate_qec_circuit(code, qed, {}, logical_ops)
+...     dev = Device("clifford")
+...     dev.run(circuit)
+...     raw_results, erasure = dev.get_sample()
+...     sample = MeasurementSample.from_code_and_raw_results(code, raw_results, erasure)
+...     return sample
 
 >>> planar_5 = LatticeCode.make_planar(size=5, n_rounds=1)
 >>> p = 0.04
@@ -482,7 +498,8 @@ none are erased, but the decoder needs this information).
 >>> mwpm = PyMatchingDecoder.from_code(planar_5, qed, weighted=False)
 >>> correction = [mwpm.decode(sample.erased_qubits, sample.syndrome)]
 >>> vis_5 = LatticeVisualizer(planar_5)
->>> vis_5.draw_latticedata(height=500, syndrome=sample.syndrome[0], correction=correction)
+>>> vis_5.draw_latticedata(height=500, syndrome=sample.syndrome[0], correction=correction)  # doctest: +ELLIPSIS
+Figure({...
 
 .. figure:: planar5_rand_syn.png
 
@@ -528,13 +545,15 @@ distributions of each type of error.
 
 We visualize the effective :math:`X` error probability distribution:
 
->>> vis_5x.draw_lattice(height=300)
+>>> vis_5x.draw_lattice(height=300)  # doctest: +ELLIPSIS
+Figure({...
 
 .. figure:: planar5_x.png
 
 We visualize the effective :math:`Z` error probability distribution:
 
->>> vis_5z.draw_lattice(height=300)
+>>> vis_5z.draw_lattice(height=300)  # doctest: +ELLIPSIS
+Figure({...
 
 .. figure:: planar5_z.png
 
@@ -545,7 +564,8 @@ sample and the correction given by the MWPM decoder.
 >>> mwpm = PyMatchingDecoder.from_code(planar_5, random_qed, weighted=True)
 >>> correction = [mwpm.decode(sample.erased_qubits, sample.syndrome)]
 >>> vis_5 = LatticeVisualizer(planar_5)
->>> vis_5.draw_latticedata(height=500, syndrome=sample.syndrome[0], correction=correction)
+>>> vis_5.draw_latticedata(height=500, syndrome=sample.syndrome[0], correction=correction)  # doctest: +ELLIPSIS
+Figure({...
 
 .. figure:: planar5_corr_mwpm.png
 
@@ -671,6 +691,11 @@ Naturally, the Union Find decoder is included in the library ``plaquette``.
 
 >>> from plaquette.decoders import UnionFindDecoder
 
+.. note::
+
+   This decoder is Python-based. For a much more performant option, have a look
+   at `its C++ version <https://github.com/qc-design/plaquette-unionfind>`_.
+
 We will now use the Union Find to decode some samples. We will use the same code and
 error probabilities as we did for the MWPM.
 
@@ -678,7 +703,8 @@ error probabilities as we did for the MWPM.
 >>> uf = UnionFindDecoder.from_code(planar_5, qed, weighted=False)
 >>> correction = [uf.decode(sample.erased_qubits, sample.syndrome)]
 >>> vis_5 = LatticeVisualizer(planar_5)
->>> vis_5.draw_latticedata(height=500, syndrome=sample.syndrome[0], correction=correction)
+>>> vis_5.draw_latticedata(height=500, syndrome=sample.syndrome[0], correction=correction)  # doctest: +ELLIPSIS
+Figure({...
 
 .. figure:: planar5_corr_uf.png
 
@@ -707,7 +733,8 @@ error distribution as the one we obtained for the MWPM.
 >>> weighted_uf = UnionFindDecoder.from_code(planar_5, random_qed, weighted=True)
 >>> correction = [weighted_uf.decode(sample.erased_qubits, sample.syndrome)]
 >>> vis_5 = LatticeVisualizer(planar_5)
->>> vis_5.draw_latticedata(height=500, syndrome=sample.syndrome[0], correction=correction)
+>>> vis_5.draw_latticedata(height=500, syndrome=sample.syndrome[0], correction=correction)  # doctest: +ELLIPSIS
+Figure({...
 
 .. figure:: planar5_corr_uf_weighted.png
 
