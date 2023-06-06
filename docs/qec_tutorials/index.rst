@@ -16,3 +16,4 @@ In this page, you can find resources to get you started with the topic.
    :maxdepth: 2
 
    intro_and_codes/intro_and_codes
+   decoding/decoding
