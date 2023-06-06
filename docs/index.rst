@@ -138,6 +138,12 @@ further enhancing the functionality and user experience of the library.
    quickstart
    advanced
 
+.. toctree::
+   :caption: Theory tutorials
+   :maxdepth: 2
+   :hidden:
+
+   qec_tutorials/index
 
 .. toctree::
    :caption: References
