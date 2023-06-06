@@ -71,27 +71,35 @@ Rich set of "off-the-shelf" components
    study the surface code with varying types of errors and error rates?
    Just :meth:`~.LatticeCode.make_planar` without worrying about how to
    construct a lattice from scratch and define the errors you need!
-Hackable circuit simulator
-   ``plaquette`` comes with a simple but open and easy to understand
-   ``"clifford"`` backend (via :class:`.Device`), together with a streamlined
-   :class:`.Circuit` description, which allows you to dive deep into the
-   details of what's happening in the simulation. Want to manipulate and alter
-   the internal :class:`.QuantumState` of the simulator before/after your
-   circuit starts?  You can! Don't care about that? Just
-   :meth:`~.Device.get_sample`!
+Flexible device interfaces (even to *real quantum hardware*!)
+   ``plaquette`` can be interfaced with different "devices"  (via
+   :class:`.Device`), like a simple but open and easy to understand
+   ``"clifford"`` backend, together with a streamlined :class:`.Circuit`
+   description, which allows you to dive deep into the details of what's
+   happening in the simulation. Want to manipulate and alter the internal
+   :class:`.QuantumState` of the simulator before/after your circuit starts?
+   You can! Don't care about that? Just :meth:`~.Device.get_sample`! Want to
+   go to the next level and **run your circuits on a real quantum machine**?
+   Check out the separate
+   `IBM backend <https://docs.plaquette.design/projects/ibm-backend>`_, an interface
+   to a real quantum machine! (wait times might be quite long, unfortunately)
 Growing collection of fine-grained error models
    from simple Pauli error channels to correlated 2-qubit noise, gate-level
    errors and unique possibility of handling **erasure** errors, ``plaquette``
    allows you to fine-tune your simulated system to get as close as possible
    to what you really want to model. And you can do this on a
    *per-qubit basis*!
-Different types of classical decoding algorithms
-   we provide both interfaces to third-party decoders (like
+Fastest decoder implementation
+   Our own implementation of the
+   `UnionFind decoder <https://github.com/qc-design/plaquette-unionfind>`_
+   has been optimized for incredible performance! Check out the
+   `benchmarks <https://github.com/qc-design/plaquette-unionfind#benchmarks>`_ for
+   a comparison with other known implementations of decoding algorithms.
+Different types of classical decoding algorithms through third-party integrations
+   We also provide interfaces to third-party decoders (like
    :class:`~.interfaces.PyMatchingDecoder` and
-   :class:`~.interfaces.FusionBlossomDecoder`) but also our own decoders that
-   take advantage of the unique features of ``plaquette``: our
-   :class:`~.interfaces.UnionFindDecoder` is unique in its capability of being
-   able to deal with erasure errors.
+   :class:`~.interfaces.FusionBlossomDecoder`) for an easy comparison of
+   multiple decoding strategies of a single quantum error correction code.
 
 Maybe another important but often overlooked factor is that these features
 benefit from being developed in lockstep with each other. This removes a lot
@@ -118,11 +126,9 @@ Overall structure
    Performant classical decoding algorithms, either interfaces to existing
    3rd-party libraries or our own implementation.
 
-Additionally, ``plaquette`` offers support modules for graph manipulation
-(:mod:`plaquette.syngraph`)and visualisation (:mod:`plaquette.visualizer`).
-These modules further enhance the functionality and user experience of the
-library.
-
+Additionally, ``plaquette`` offers support for visualisation of quantum
+error-correction codes and associated syndromes (:mod:`plaquette.visualizer`),
+further enhancing the functionality and user experience of the library.
 
 .. toctree::
    :caption: Usage guides
@@ -132,6 +138,12 @@ library.
    quickstart
    advanced
 
+.. toctree::
+   :caption: Theory tutorials
+   :maxdepth: 2
+   :hidden:
+
+   qec_tutorials/index
 
 .. toctree::
    :caption: References

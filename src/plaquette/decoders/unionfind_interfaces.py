@@ -12,6 +12,7 @@
 from __future__ import annotations
 
 import abc
+import warnings
 from typing import Optional
 
 import numpy as np
@@ -104,6 +105,15 @@ class UnionFindDecoder(UnionFindBase):
 
     This is an interface to :class:`.unionfind_decoder.UnionFindDecoder`.
     """
+
+    def __init__(self, *args, **kwargs):  # noqa: D107
+        super().__init__(*args, **kwargs)
+        warnings.warn(
+            "Use the UnionFindDecoderInterface class from the plaquette_unionfind "
+            "package instead",
+            DeprecationWarning,
+            stacklevel=2,
+        )
 
     @staticmethod
     def _get_union_find(graph):
