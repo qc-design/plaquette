@@ -47,7 +47,7 @@ intersphinx_mapping = {
     "sphinx": ("https://www.sphinx-doc.org/en/master/", None),
     "python": ("https://docs.python.org/3", None),
     "numpy": ("https://numpy.org/doc/stable/", None),
-    "plaquette_unionfind": ("https://docs.plaquette.design/projects/unionfind", None),
+    "plaquette_unionfind": ("https://docs.plaquette.design/projects/unionfind/en/latest/", None),
 }
 
 autodoc_member_order = "groupwise"
