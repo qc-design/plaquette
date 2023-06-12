@@ -534,6 +534,10 @@ def _measure_base(state, base, targets, *, destructive=False, forced_outcomes=No
     # highest index in order not to shoot ourselves in the foot, so we
     # reverse everything
     for sorted_idx in reversed(np.argsort(targets)):
+        # in the case of a destructive measurement, the number of qubits used to construct the single-qubit measurement
+        # needs to be updated, otherwise one ends up trying to measure a single-qubit measurement defined on N qubits
+        # but on a state containing N-1 qubits, and the measurement function throws an error.
+        n_q = count_qubits(state)[0]
         state, m = measure(
             state,
             single_qubit_pauli_operator(base, targets[sorted_idx], n_q),
