@@ -151,7 +151,7 @@ def apply_operator(op: Tableau, state: Tableau) -> Tableau:
     if op.shape[1] != state.shape[1]:
         raise ValueError(
             "`op` and `state` act on a different number of qubits: "
-            f"{op.shape[1]//2} and {state.shape[1]//2}"
+            f"{op.shape[1] // 2} and {state.shape[1] // 2}"
         )
     # TODO: all these exceptions should be tested, I hope there's no more wrong paths.
     # casting doesn't work here for some reason, and (o, stabiliser) are not recognised
@@ -352,7 +352,7 @@ def dict_to_pauli(ops: PauliDict, qubits: Optional[int] = None) -> Tableau:
     if qubits <= max_qubit_index:
         raise ValueError(
             f"Specified qubits ({qubits}) are less than the "
-            f"ones necessary ({max_qubit_index+1}"
+            f"ones necessary ({max_qubit_index + 1}"
         )
     binary_operator = np.zeros(2 * qubits + 1, dtype="u1")
     for qubit_index, operator in ops.items():
@@ -534,10 +534,6 @@ def _measure_base(state, base, targets, *, destructive=False, forced_outcomes=No
     # highest index in order not to shoot ourselves in the foot, so we
     # reverse everything
     for sorted_idx in reversed(np.argsort(targets)):
-        # in the case of a destructive measurement, the number of qubits used to construct the single-qubit measurement
-        # needs to be updated, otherwise one ends up trying to measure a single-qubit measurement defined on N qubits
-        # but on a state containing N-1 qubits, and the measurement function throws an error.
-        n_q = count_qubits(state)[0]
         state, m = measure(
             state,
             single_qubit_pauli_operator(base, targets[sorted_idx], n_q),
@@ -546,6 +542,12 @@ def _measure_base(state, base, targets, *, destructive=False, forced_outcomes=No
         measurement_results[sorted_idx] = m
         if destructive:
             state = _ptrace(state, targets[sorted_idx], base)
+            # in the case of a destructive measurement, the number of qubits used to
+            # construct the single-qubit measurement needs to be updated, otherwise
+            # one ends up trying to measure a single-qubit measurement defined on N
+            # qubits but on a state containing N-1 qubits, and the measurement
+            # function throws an error.
+            n_q -= 1
     return state, measurement_results[0] if len(targets) == 1 else measurement_results
 
 
