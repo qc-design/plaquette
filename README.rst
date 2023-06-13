@@ -32,6 +32,37 @@ Installation
 marked as alpha. We will drop this requirement soon!
 
 
+Feature Highlights
+------------------
+
+Our objective is to make plaquette a fully featured package that enables 
+you to study quantum error correction and fault tolerance from start to 
+finish. Some highlights:
+
+- We’ve built into Plaquette the fastest decoding algorithm for finding 
+  and correcting errors. The decoder is available here: `plaquette-unionfind <https://github.com/qc-design/plaquette-unionfind>`_.
+
+- Plaquette allows running real-world experiments on quantum computers 
+  from hardware providers. See `plaquette-ibm-backend <https://github.com/qc-design/plaquette-ibm-backend>`_ 
+  for an example.
+
+- Plaquette includes the broadest range of hardware errors that are amenable 
+  to efficient simulations. Other than the usual Pauli errors, Plaquette 
+  supports erasure errors and fabrication errors (stay tuned!), important 
+  to several different hardware platforms. 
+
+- Plaquette makes it effortless to design new error correction codes – 
+  simply define the connectivity of the qubits, and plaquette takes care 
+  of the rest making it easy to design new codes tailored to hardware 
+  imperfections.
+
+- Plaquette comes with extensive `documentation <https://docs.plaquette.design/>`_ 
+  and comprehensive tutorials. 
+
+An important aspect of plaquette is that these features have been developed 
+concurrently, which reduces the need for glue code often required when 
+interfacing many different components.
+
 Documentation
 -------------
 
@@ -67,3 +98,12 @@ Supporters
 (BMBF) via project `PhotonQ <https://www.photonq.de/>`_. An early prototype of
 ``plaquette`` was developed under the support of the BMBF project
 `PhoQuant <https://www.quantentechnologien.de/forschung/foerderung/quantencomputer-demonstrationsaufbauten/phoquant.html>`_.
+
+
+Try Plaquette today!
+--------------------
+
+Start exploring the challenges of fault tolerance with plaquette. We hope that 
+you find it useful! To start your journey with plaquette, we recommend our 
+`quickstart guide <https://docs.plaquette.design/en/latest/quickstart.html>`_, 
+which will introduce you to many important aspects of the library.
