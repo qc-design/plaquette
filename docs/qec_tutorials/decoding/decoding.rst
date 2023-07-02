@@ -126,7 +126,9 @@ corrections:
 Figure({...
 
 
-.. figure:: planar3_syn69.png
+.. figure:: planar3_syn69.png 
+
+Comment: the above figure show X and Z correction, which is different from the corrections applied (X_6X_9) in the above code.
 
 >>> syndrome = np.array([0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1])
 >>> correction_dict = {8: "X", 11: "X"}
