@@ -344,6 +344,11 @@ Figure({...
 
 .. figure:: syn_ex2.png
 
+Comment: Can add here the following sentence:
+
+Here another possible correction is by the Pauli operators Z_0 and Z_11. To describe this correction in terms of the decoding graphs, we can add a virtual vertex to the decoding graph. You may have also noticed that we can have some single-qubit errors that only toggle...
+
+
 You may have noticed that here we have some single-qubit errors that only toggle one
 ancilla. We call these edges *dangling* edges, and we can add a new *virtual* vertex,
 which we can call an *open vertex*, and give it an index higher than the total amount
@@ -428,6 +433,10 @@ process must be done quickly, faster than the emergence of new errors. It would 
 pointless to correct one error if, during the time required to do so, ten new errors
 appeared. Because of this, we need to automate this process. Because of this, a few
 decoding algorithms have been proposed.
+
+Comment: Because of this repeats here. Instead can write something like: 
+
+Because of this, we need to automate this process. A few decoding algorithms have been proposed to automate this process.
 
 The decoding algorithms are, as their name suggests, algorithms that take as input the
 graph (or weighted graph) of the underlying structure of a code and a syndrome and give
