@@ -8,6 +8,11 @@ A declarative approach to ``plaquette``
 
 .. sectionauthor:: Varun Seshadri
 
+.. important::
+
+   This is an **experimental** feature! We made sure that it works for most
+   common use-cases, but the UI might not be as comfortable as it should be.
+
 This tutorial will demonstrate how to use the :mod:`~plaquette.frontend` module of
 :mod:`~plaquette` to run simulations through a set of configurations. For each
 submodule in :mod:`~plaquette` the frontend contains a Config

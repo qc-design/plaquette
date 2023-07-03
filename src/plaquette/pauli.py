@@ -44,6 +44,7 @@ import itertools
 import re
 import typing
 from collections.abc import Iterable, Mapping, Sequence
+from enum import IntEnum
 from typing import Any, Optional, TypeAlias
 
 import numpy as np
@@ -51,7 +52,22 @@ import numpy as np
 import plaquette
 
 Tableau: TypeAlias = np.ndarray[Any, np.dtype[np.uint8]]
-PauliDict = Mapping[int, str]
+
+
+class Factor(IntEnum):
+    """Factor corresponding to the Pauli operator (X, Y, Z, I)."""
+
+    X = 0
+    """Pauli :math:`X`."""
+    Y = 1
+    """Pauli :math:`Y`."""
+    Z = 2
+    """Pauli :math:`Z`."""
+    I = 3  # noqa: E741
+    """Identity operator."""
+
+
+PauliDict = Mapping[int, Factor]
 
 
 def _g(x1: int, z1: int, x2: int, z2: int) -> int:
@@ -145,13 +161,13 @@ def apply_operator(op: Tableau, state: Tableau) -> Tableau:
         #  stabiliser generators? Is it necessary?
         raise ValueError(
             f"Number of operators in `op` ({op.shape[0]}) does not match number of "
-            f"stabilisers in `state` ({state.shape[0]})"
+            f"stabilizers in `state` ({state.shape[0]})"
         )
 
     if op.shape[1] != state.shape[1]:
         raise ValueError(
             "`op` and `state` act on a different number of qubits: "
-            f"{op.shape[1] // 2} and {state.shape[1] // 2}"
+            f"{op.shape[1]//2} and {state.shape[1]//2}"
         )
     # TODO: all these exceptions should be tested, I hope there's no more wrong paths.
     # casting doesn't work here for some reason, and (o, stabiliser) are not recognised
@@ -204,6 +220,7 @@ def commutator_sign(
 
     Examples:
         Check the commutator sign between two operators:
+
         >>> a, b = string_to_pauli("X1X2"), string_to_pauli("Z1Z2")
         >>> commutator_sign(a, b)
         array(0, dtype=uint8)
@@ -212,12 +229,14 @@ def commutator_sign(
         array(1, dtype=uint8)
 
         Check the commutator sign between a state and an operator:
+
         >>> zs = zero_state(5)
         >>> op = single_qubit_pauli_operator("X", 1, 5)
         >>> commutator_sign(op, zs)
         array([0, 0, 0, 0, 0, 0, 1, 0, 0, 0], dtype=uint8)
 
         Ignore the destabilisers from the output:
+
         >>> zs = zero_state(5)
         >>> op = single_qubit_pauli_operator("X", 3, 5)
         >>> commutator_sign(op, zs, ignore_destabilisers=True)
@@ -345,6 +364,14 @@ def dict_to_pauli(ops: PauliDict, qubits: Optional[int] = None) -> Tableau:
             from ``ops``'s keys.
     """
     # TODO: add tests
+    if not ops:
+        if qubits is not None:
+            return np.zeros(2 * qubits + 1, dtype="u1")
+        else:
+            raise ValueError(
+                "cannot make an operator out of an empty dict without a "
+                "specific number of qubits"
+            )
     max_qubit_index = max(ops.keys())
     if qubits is None:
         qubits = max_qubit_index + 1
@@ -352,12 +379,16 @@ def dict_to_pauli(ops: PauliDict, qubits: Optional[int] = None) -> Tableau:
     if qubits <= max_qubit_index:
         raise ValueError(
             f"Specified qubits ({qubits}) are less than the "
-            f"ones necessary ({max_qubit_index + 1}"
+            f"ones necessary ({max_qubit_index+1}"
         )
     binary_operator = np.zeros(2 * qubits + 1, dtype="u1")
     for qubit_index, operator in ops.items():
-        binary_operator[qubit_index] = int(operator in "XY")
-        binary_operator[qubit_index + qubits] = int(operator in "ZY")
+        if isinstance(operator, Factor):
+            op = operator.name
+        else:
+            op = operator
+        binary_operator[qubit_index] = int(op in "XY")
+        binary_operator[qubit_index + qubits] = int(op in "ZY")
     return binary_operator
 
 
@@ -542,12 +573,6 @@ def _measure_base(state, base, targets, *, destructive=False, forced_outcomes=No
         measurement_results[sorted_idx] = m
         if destructive:
             state = _ptrace(state, targets[sorted_idx], base)
-            # in the case of a destructive measurement, the number of qubits used to
-            # construct the single-qubit measurement needs to be updated, otherwise
-            # one ends up trying to measure a single-qubit measurement defined on N
-            # qubits but on a state containing N-1 qubits, and the measurement
-            # function throws an error.
-            n_q -= 1
     return state, measurement_results[0] if len(targets) == 1 else measurement_results
 
 
@@ -705,7 +730,7 @@ def measure(
 
     # Outcome is random if one meas_op does not commute with at least one
     # stabilizer, which appear after n_qubits. We don't care about not commuting
-    # with the de-stabilisers
+    # with the de-stabilizers
     if nonzero[-1] >= number_of_qubits:
         # Find the first non-commuting (with meas_op) stabilizer
         first_nc_stab = nonzero[nonzero >= number_of_qubits][0]
@@ -820,7 +845,7 @@ def pauli_to_dict(op: Tableau) -> PauliDict:
 
     Examples:
         >>> pauli_to_dict(np.array([0, 1, 1, 0, 1]))
-        {0: 'Z', 1: 'X'}
+        {0: <Factor.Z: 3>, 1: <Factor.X: 1>}
     """
     x, z, _ = unpack_tableau(op)
 
@@ -829,7 +854,7 @@ def pauli_to_dict(op: Tableau) -> PauliDict:
         binary_index = (i << 1) | j
         if binary_index:
             # We discard the identity case (binary_index == 0)
-            res[qubit] = "IZXY"[binary_index]
+            res[qubit] = Factor["IZXY"[binary_index]]
     return res
 
 
@@ -912,7 +937,7 @@ def state_to_stabiliser_string(
             ``'+ X0 X3'``
 
     Returns:
-        a tuple of two lists. Each list contains the destabilisers and stabilisers,
+        a tuple of two lists. Each list contains the destabilisers and stabilizers,
         respectively, as strings.
 
     Examples:
@@ -1044,7 +1069,9 @@ def string_to_pauli(op_str: str, qubits: Optional[int] = None) -> Tableau:
         # we check only the first sign to apply a global phase
         if op_str_components[0][0] == "-":
             initial_phase = 1
-        operator_dict: PauliDict = {int(i): o for _, _, o, i in op_str_components}
+        operator_dict: PauliDict = {
+            int(i): Factor[o] for _, _, o, i in op_str_components
+        }
     else:
         # Otherwise, this is the canonical representation. We first remove the sign
         # if present at all
@@ -1052,7 +1079,7 @@ def string_to_pauli(op_str: str, qubits: Optional[int] = None) -> Tableau:
             initial_phase = 1 if op_str[0] == "-" else 0
             op_str = op_str[1:]
         # and then we compile a dictionary of where non-identity operators are
-        operator_dict = {i: o for i, o in enumerate(op_str) if o != "I"}
+        operator_dict = {i: Factor[o] for i, o in enumerate(op_str) if o != "I"}
         # we also need to make sure that we are not truncating identities from
         # the end in the canonical representation
         qubits = max(qubits or 0, len(op_str))
@@ -1500,3 +1527,43 @@ def zero_state(number_of_qubits: int) -> Tableau:
         the tableau representation of the state.
     """
     return np.eye(2 * number_of_qubits + 1, dtype="u1")[:-1]
+
+
+def sort_operators_ref(ops: Sequence[Tableau]) -> list[Tableau]:
+    """Sort operators in the row echelon form.
+
+    Args:
+        ops: The set of checks to sort in row echelon form.
+
+    Returns:
+        A list of operators (in Tableau form).
+
+    Notes:
+        The assumption is we are dealing with CSS codes only.
+
+    Examples:
+        >>> steane = ["XXIIIXX", "IZZZIIZ", "IIIZZZZ", "IXXXIIX", "IIIXXXX", "ZZIIIZZ"]
+        >>> steane_stabs = [string_to_pauli(s) for s in steane]
+        >>> sorted_stabs = sort_operators_ref(steane_stabs)
+        >>> sorted_steane = [pauli_to_string(s) for s in sorted_stabs]
+        >>> print(sorted_steane)
+        ['+XXIIIXX', '+IXXXIIX', '+IIIXXXX', '+ZZIIIZZ', '+IZZZIIZ', '+IIIZZZZ']
+    """
+    return [ops[i] for i in np.argsort([np.nonzero(o)[0][0] for o in ops])]
+
+
+def is_css(ops: Sequence[Tableau]):
+    """Check if given sequence of ops are in CSS form.
+
+    Args:
+        ops: A sequence of ops in Tableau form
+
+    Returns:
+        Bool determining whether set of ops is in CSS form.
+    """
+    for op in ops:
+        x_comp, z_comp, _ = unpack_tableau(op)
+        if np.any(x_comp) and np.any(z_comp):
+            return False
+
+    return True

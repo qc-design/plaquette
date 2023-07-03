@@ -1,12 +1,17 @@
 # Copyright 2023, QC Design GmbH and the plaquette contributors
 # SPDX-License-Identifier: Apache-2.0
+import typing as t
+
 import numpy as np
 import pytest as pt
 
 from plaquette.pauli import (
+    Factor,
+    Tableau,
     _g,
     commutator_sign,
     count_qubits,
+    is_css,
     measure,
     measure_x_base,
     measure_z_base,
@@ -14,6 +19,8 @@ from plaquette.pauli import (
     pad_operator,
     pauli_to_dict,
     single_qubit_pauli_operator,
+    sort_operators_ref,
+    string_to_pauli,
     x,
     z,
 )
@@ -147,14 +154,14 @@ def test_operator_padding(op: np.ndarray, total: int):
     "op,res",
     [
         (np.array([0, 0, 0]), {}),
-        (np.array([0, 1, 0]), {0: "Z"}),
-        (np.array([1, 0, 0]), {0: "X"}),
-        (np.array([1, 1, 0]), {0: "Y"}),
+        (np.array([0, 1, 0]), {0: Factor.Z}),
+        (np.array([1, 0, 0]), {0: Factor.X}),
+        (np.array([1, 1, 0]), {0: Factor.Y}),
         (np.array([0, 0, 0, 0, 0]), {}),
-        (np.array([0, 1, 1, 0, 0]), {0: "Z", 1: "X"}),
-        (np.array([0, 1, 0, 0, 0]), {1: "X"}),
-        (np.array([1, 1, 1, 1, 0]), {0: "Y", 1: "Y"}),
-        (np.array([0, 0, 0, 1, 0]), {1: "Z"}),
+        (np.array([0, 1, 1, 0, 0]), {0: Factor.Z, 1: Factor.X}),
+        (np.array([0, 1, 0, 0, 0]), {1: Factor.X}),
+        (np.array([1, 1, 1, 1, 0]), {0: Factor.Y, 1: Factor.Y}),
+        (np.array([0, 0, 0, 1, 0]), {1: Factor.Z}),
     ],
 )
 def test_pauli_to_dict(op, res):
@@ -406,3 +413,83 @@ def test_z_gate(qubits: int | list[int], sign_row: list[int]):
     state = z(state, qubits)
     assert np.all(state[:, -1] == np.array(sign_row))
     assert np.all(state[:, :-1] == np.eye(4))
+
+
+@pt.mark.parametrize(
+    "ops, sorted_ops",
+    [
+        # Planar Code Distance 2
+        (
+            [
+                string_to_pauli("Z0Z1Z2", 5),
+                string_to_pauli("Z2Z3Z4", 5),
+                string_to_pauli("X0X2X3", 5),
+                string_to_pauli("X1X2X4", 5),
+            ],
+            [
+                string_to_pauli("X0X2X3", 5),
+                string_to_pauli("X1X2X4", 5),
+                string_to_pauli("Z0Z1Z2", 5),
+                string_to_pauli("Z2Z3Z4", 5),
+            ],
+        ),
+        # Rotated Planar XZZX Code
+        (
+            [
+                string_to_pauli("X0Z3", 9),
+                string_to_pauli("X1Z2", 9),
+                string_to_pauli("X8Z5", 9),
+                string_to_pauli("Z6X7", 9),
+                string_to_pauli("Z0X1X3Z4", 9),
+                string_to_pauli("Z1X2X4Z5", 9),
+                string_to_pauli("Z3X4X6Z7", 9),
+                string_to_pauli("Z4X5X7Z8", 9),
+            ],
+            [
+                string_to_pauli("X0Z3", 9),
+                string_to_pauli("X1Z2", 9),
+                string_to_pauli("Z0X1X3Z4", 9),
+                string_to_pauli("Z1X2X4Z5", 9),
+                string_to_pauli("Z3X4X6Z7", 9),
+                string_to_pauli("Z4X5X7Z8", 9),
+                string_to_pauli("Z6X7", 9),
+                string_to_pauli("X8Z5", 9),
+            ],
+        ),
+    ],
+)
+def test_sort_operators_ref(ops: t.Sequence[Tableau], sorted_ops: t.Sequence[Tableau]):
+    assert all(
+        [np.array_equal(r, o) for r, o in zip(sort_operators_ref(ops), sorted_ops)]
+    )
+
+
+@pt.mark.parametrize(
+    "ops, ret_val",
+    [
+        (
+            [
+                string_to_pauli("Z0Z1Z2", 5),
+                string_to_pauli("Z2Z3Z4", 5),
+                string_to_pauli("X0X2X3", 5),
+                string_to_pauli("X1X2X4", 5),
+            ],
+            True,
+        ),
+        (
+            [
+                string_to_pauli("X0Z3", 9),
+                string_to_pauli("X1Z2", 9),
+                string_to_pauli("Z0X1X3Z4", 9),
+                string_to_pauli("Z1X2X4Z5", 9),
+                string_to_pauli("Z3X4X6Z7", 9),
+                string_to_pauli("Z4X5X7Z8", 9),
+                string_to_pauli("Z6X7", 9),
+                string_to_pauli("X8Z5", 9),
+            ],
+            False,
+        ),
+    ],
+)
+def test_is_css(ops: t.Sequence[Tableau], ret_val: bool):
+    assert is_css(ops) == ret_val

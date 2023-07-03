@@ -6,10 +6,10 @@ This module provides tools for connecting to quantum devices and simulating
 quantum error correction using suitable Clifford circuits. A circuit from
 :mod:`plaquette.circuit` can be simulated as follows:
 
->>> from plaquette.codes import LatticeCode
+>>> from plaquette import codes
 >>> from plaquette.circuit.generator import generate_qec_circuit
 >>> from plaquette import Device
->>> circ = generate_qec_circuit(LatticeCode.make_planar(1, 4), {}, {}, logical_ops="X")
+>>> circ = generate_qec_circuit(codes.Code.make_rotated_planar(5), {}, {}, "X")
 >>> dev = Device("clifford")
 >>> dev  # doctest: +ELLIPSIS
 <plaquette.device.Device object at ...>
@@ -38,7 +38,7 @@ import numpy as np
 import pkg_resources
 
 from plaquette import circuit as plaq_circuit
-from plaquette.codes import LatticeCode
+from plaquette import codes
 from plaquette.pauli import (
     count_qubits,
     cx,
@@ -215,65 +215,52 @@ class MeasurementSample:
     @classmethod
     def from_code_and_raw_results(
         cls,
-        code: LatticeCode,
+        code: codes.Code,
         raw_results: np.ndarray,
         erasure: Optional[np.ndarray] = None,
-        logical_ancilla: bool = False,
+        n_rounds: int = 1,
     ):
         """Unpack the results from a simulator into a more convenient format.
 
         Args:
-            code: the :class:`.LatticeCode` used to generate the circuit which produced
-                the results you want to unpack.
+            code: the :class:`.Code` used to generate the circuit which
+                produced the results you want to unpack.
+            n_rounds: number of measurement rounds that produced these results.
             raw_results: the measurement results from
                 :meth:`AbstractSimulator.get_sample`.
             erasure: erasure information from
                 :meth:`AbstractSimulator.get_sample`.
-            logical_ancilla: flag for alternative method to measure logical operators
-                via additional ancilla that is entangled with several physical qubits
         """
-        if not logical_ancilla:
-            # Default behavior
-            code_distance = count_qubits(code.logical_ops, include_identities=False)[0]
+        code_distance = code.distance
 
-            logical_op_initial = np.array(
-                [
-                    np.sum(raw_results[i * code_distance : (i + 1) * code_distance]) % 2
-                    for i in range(code.n_logical_qubits)
-                ],
-                dtype=int,
-            )
-            # fmt: off
-            logical_op_final = np.array(
-                [
-                    np.sum(
-                        raw_results[len(raw_results) - (i * code_distance)
-                            - code_distance : len(raw_results) - (i * code_distance)]  # noqa
-                    ) % 2 for i in range(code.n_logical_qubits)
-                ][::-1], dtype=int,
-            )
-            ancillas = np.array(
-                raw_results[code.n_logical_qubits * code_distance : -code.n_logical_qubits * code_distance] # noqa
-            )
-            # fmt: on
-        else:
-            # Alternative behavior
-            logical_op_initial = np.array(raw_results[: code.n_logical_qubits])
-            logical_op_final = np.array(raw_results[-code.n_logical_qubits :])
-            ancillas = np.array(
-                raw_results[code.n_logical_qubits : -code.n_logical_qubits]
-            )
+        logical_op_initial = np.array(
+            [
+                np.sum(raw_results[i * code_distance : (i + 1) * code_distance]) % 2
+                for i in range(code.num_logical_qubits)
+            ],
+            dtype=int,
+        )
+        # fmt: off
+        logical_op_final = np.array(
+            [
+                np.sum(
+                    raw_results[len(raw_results) - (i * code_distance)
+                        - code_distance : len(raw_results) - (i * code_distance)]  # noqa
+                ) % 2 for i in range(code.num_logical_qubits)
+            ][::-1], dtype=int,
+        )
+        ancillas = np.array(
+            raw_results[code.num_logical_qubits * code_distance : -code.num_logical_qubits * code_distance] # noqa
+        )
+        # fmt: on
 
         logical_toggle = logical_op_initial ^ logical_op_final
-        stab = ancillas.reshape((code.n_rounds + 1, code.n_stabgens))
-        syndrome = stab[1:] ^ stab[:-1]
+        stab = ancillas.reshape((n_rounds + 1, code.num_stabilizers))
+        syndrome = (stab[1:] ^ stab[:-1]).ravel()
 
         if erasure is not None:
-            if erasure.shape != (code.n_rounds * code.n_data_qubits,):
+            if erasure.shape != (n_rounds * code.num_data_qubits,):
                 raise ValueError("Wrong number of erasure information pieces")
-            erasure = erasure.reshape((code.n_rounds, code.n_data_qubits))
-        else:
-            erasure = None
 
         return MeasurementSample(
             logical_op_initial=logical_op_initial,

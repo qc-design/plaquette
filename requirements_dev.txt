@@ -6,7 +6,7 @@ setuptools>=64
 black>23
 coverage>=4.5.4
 pre-commit
-ruff==0.0.272
+ruff==0.0.270
 
 furo
 pytest>=7.1.2

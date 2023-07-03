@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 import pytest as pt
 
-from plaquette.codes import LatticeCode
+from plaquette import codes
 from plaquette.errors import ErrorData, ErrorDataDict, ErrorValueDict
 
 
@@ -13,7 +13,7 @@ def errordata():
 
 @pt.fixture
 def code():
-    return LatticeCode.make_rotated_planar(n_rounds=1, size=3)
+    return codes.Code.make_rotated_planar(distance=3)
 
 
 class TestErrorData:
@@ -26,8 +26,7 @@ class TestErrorData:
             ),
             (
                 ("measurement", 6, {"p": 0.4}),
-                "For {'error': 'measurement'}: Not a stabilizer generator: "
-                "DataVertex(pos = (5, 1), ext_idx = 6, data_idx = 6)",
+                "Index 6 for gate measurement is not an ancilla",
             ),
             (
                 ("pauli", 4, {"p": 0.5}),
@@ -37,7 +36,11 @@ class TestErrorData:
         ],
     )
     def test_check_internal(
-        self, errordata: ErrorDataDict, code: LatticeCode, params: tuple, error_msg: str
+        self,
+        errordata: ErrorDataDict,
+        code: codes.Code,
+        params: tuple,
+        error_msg: str,
     ):
         ed_ui = ErrorData()
         errordata[params[0]] = {params[1]: ErrorValueDict(params[2])}  # type: ignore

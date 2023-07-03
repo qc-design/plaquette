@@ -22,6 +22,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from plaquette.circuit.generator import generate_qec_circuit  # noqa: F401
+
 
 class Circuit:
     """A Clifford circuit.

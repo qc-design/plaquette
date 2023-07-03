@@ -14,10 +14,10 @@ Supported errors include:
 
 Errors can be defined by creating an instance of :class:`ErrorDataDict`.
 :class:`ErrorDataDict` is the union of two dictionaries :class:`QubitErrorsDict` and
-:class:`GateErrorsDict`, which are ``TypedDict`` dictionaries specifies the error
+:class:`GateErrorsDict`, which are ``t.TypedDict`` dictionaries specifies the error
 configurations of the qubits. To simplify specifying error configurations,
 the user can use :class:`.ErrorData` and its convenience functions to
-play around with error configuration. There required ``TypedDict`` can be generated
+play around with error configuration. There required ``t.TypedDict`` can be generated
 via the different methods of this convenience class.
 
 Starting from a :class:`.LatticeCode` and an :class:`.ErrorData` object, one can
@@ -28,25 +28,24 @@ decoding weights which are ideal for a given configuration of errors.
 """
 from __future__ import annotations
 
+import typing as t
 import warnings
 from dataclasses import dataclass, field
-from typing import Optional, TypedDict, cast
 
 import numpy as np
 import pandas as pd
 from scipy.stats import truncnorm
 
 import plaquette
-from plaquette.codes import LatticeCode
-from plaquette.codes.latticebase import CodeLattice, LogicalVertex
+from plaquette import codes
 
 
-class ErrorValueDict(TypedDict, total=False):  # noqa: D101
+class ErrorValueDict(t.TypedDict, total=False):  # noqa: D101
     p: float
     """Probability of the error."""
 
 
-class SinglePauliChannelErrorValueDict(TypedDict, total=False):  # noqa: D101
+class SinglePauliChannelErrorValueDict(t.TypedDict, total=False):  # noqa: D101
     x: float
     """Probability of Pauli X error."""
     y: float
@@ -55,7 +54,7 @@ class SinglePauliChannelErrorValueDict(TypedDict, total=False):  # noqa: D101
     """Probability of Pauli Z error."""
 
 
-class TwoPauliChannelErrorValueDict(TypedDict, total=False):  # noqa: D101
+class TwoPauliChannelErrorValueDict(t.TypedDict, total=False):  # noqa: D101
     ix: float
     """Probability of Pauli IX error."""
     iy: float
@@ -88,7 +87,7 @@ class TwoPauliChannelErrorValueDict(TypedDict, total=False):  # noqa: D101
     """Probability of Pauli ZZ error."""
 
 
-class QubitErrorsDict(TypedDict, total=False):  # noqa: D101
+class QubitErrorsDict(t.TypedDict, total=False):  # noqa: D101
     pauli: dict[int, SinglePauliChannelErrorValueDict]
     """Dictionary for pauli errors.
 
@@ -106,7 +105,7 @@ class QubitErrorsDict(TypedDict, total=False):  # noqa: D101
     """
 
 
-class GateErrorsDict(TypedDict, total=False):  # noqa: D101
+class GateErrorsDict(t.TypedDict, total=False):  # noqa: D101
     CX: dict[tuple[int, int], TwoPauliChannelErrorValueDict]
     """Dictionary for CX gate errors.
 
@@ -258,7 +257,7 @@ def generate_constant_errors(val: float, qubit_list: list | np.ndarray) -> np.nd
 
 
 def generate_empty_qubit_errors_csv(
-    lattice: CodeLattice,
+    code: codes.Code,
     error_names: list[str] | None = None,
     csv_path: str = "qubit_errors.csv",
 ) -> None:
@@ -267,48 +266,48 @@ def generate_empty_qubit_errors_csv(
     Calls :func:`~.generate_empty_qubit_errors()` and saves to given path.
 
     Args:
-        lattice : The lattice of the code that is considered
-        error_names : The names of errors to be added to columns to the dataframe
-        csv_path : The path of the csv to save
+        code: :class:`.SubsystemCode` that is considered
+        error_names: The names of errors to be added to columns to the dataframe
+        csv_path: The path of the csv to save
 
     Returns:
         None, saves the dataframe as csv at the given path
 
     Examples:
-        >>> from plaquette.codes import LatticeCode
+        >>> from plaquette import codes
         >>> import tempfile
         >>> import pandas as pd
-        >>> c = LatticeCode.make_five_qubit(n_rounds=1)
+        >>> c = codes.Code.make_five_qubit()
         >>> error_names = ["X", "Y", "Z","erasure", "measurement", "fabrication"]
         >>> with tempfile.NamedTemporaryFile(suffix=".csv") as tmp:
-        ...     generate_empty_qubit_errors_csv(c.lattice, error_names, tmp.name)
+        ...     generate_empty_qubit_errors_csv(c, error_names, tmp.name)
         ...     df = pd.read_csv(tmp.name, index_col=False)
-        >>> print(df)
-           qubit_id qubit_type    X    Y    Z  erasure  measurement fabrication
-        0         0       data  0.0  0.0  0.0      0.0          0.0   available
-        1         1       data  0.0  0.0  0.0      0.0          0.0   available
-        2         2       data  0.0  0.0  0.0      0.0          0.0   available
-        3         3       data  0.0  0.0  0.0      0.0          0.0   available
-        4         4       data  0.0  0.0  0.0      0.0          0.0   available
-        5         5       stab  0.0  0.0  0.0      0.0          0.0   available
-        6         6       stab  0.0  0.0  0.0      0.0          0.0   available
-        7         7       stab  0.0  0.0  0.0      0.0          0.0   available
-        8         8       stab  0.0  0.0  0.0      0.0          0.0   available
+        >>> print(df.to_string(index=False))
+         qubit_id qubit_type   X   Y   Z  erasure  measurement fabrication
+                0       data 0.0 0.0 0.0      0.0          0.0   available
+                1       data 0.0 0.0 0.0      0.0          0.0   available
+                2       data 0.0 0.0 0.0      0.0          0.0   available
+                3       data 0.0 0.0 0.0      0.0          0.0   available
+                4       data 0.0 0.0 0.0      0.0          0.0   available
+                5 stabilizer 0.0 0.0 0.0      0.0          0.0   available
+                6 stabilizer 0.0 0.0 0.0      0.0          0.0   available
+                7 stabilizer 0.0 0.0 0.0      0.0          0.0   available
+                8 stabilizer 0.0 0.0 0.0      0.0          0.0   available
     """
-    generate_empty_qubit_errors(lattice, error_names).to_csv(csv_path, index=False)
+    generate_empty_qubit_errors(code, error_names).to_csv(csv_path, index=False)
 
 
 def generate_empty_qubit_errors(
-    lattice: CodeLattice, error_names: list[str] | None = None
+    code: codes.Code, error_names: list[str] | None = None
 ) -> pd.DataFrame:
-    """Generate an empty dataframe with given error columns and CodeLattice.
+    """Generate an empty dataframe with given error columns based on ``code``.
 
     The valid error names are
     ``{"X", "Y", "Z", "erasure", "measurement", "fabrication"}``
 
     Args:
-        lattice : The lattice of the code that is considered
-        error_names : The names of errors to be added to columns to the dataframe
+        code: The :class:`.SubsystemCode` that is considered
+        error_names: The names of errors to be added to columns to the dataframe
 
     Returns:
         A Pandas dataframe with the given error names as columns.
@@ -316,20 +315,21 @@ def generate_empty_qubit_errors(
         For fabrication, it is set to available.
 
     Examples:
-        >>> from plaquette.codes import LatticeCode
-        >>> code = LatticeCode.make_five_qubit(n_rounds=1)
+        >>> from plaquette import codes
+        >>> code = codes.Code.make_five_qubit()
         >>> error_names = ["X", "Y", "Z","erasure", "measurement", "fabrication"]
-        >>> generate_empty_qubit_errors(code.lattice, error_names)
-           qubit_id qubit_type    X    Y    Z  erasure  measurement fabrication
-        0         0       data  0.0  0.0  0.0      0.0          0.0   available
-        1         1       data  0.0  0.0  0.0      0.0          0.0   available
-        2         2       data  0.0  0.0  0.0      0.0          0.0   available
-        3         3       data  0.0  0.0  0.0      0.0          0.0   available
-        4         4       data  0.0  0.0  0.0      0.0          0.0   available
-        5         5       stab  0.0  0.0  0.0      0.0          0.0   available
-        6         6       stab  0.0  0.0  0.0      0.0          0.0   available
-        7         7       stab  0.0  0.0  0.0      0.0          0.0   available
-        8         8       stab  0.0  0.0  0.0      0.0          0.0   available
+        >>> df = generate_empty_qubit_errors(code, error_names)
+        >>> print(df.to_string(index=False))
+         qubit_id qubit_type   X   Y   Z  erasure  measurement fabrication
+                0       data 0.0 0.0 0.0      0.0          0.0   available
+                1       data 0.0 0.0 0.0      0.0          0.0   available
+                2       data 0.0 0.0 0.0      0.0          0.0   available
+                3       data 0.0 0.0 0.0      0.0          0.0   available
+                4       data 0.0 0.0 0.0      0.0          0.0   available
+                5 stabilizer 0.0 0.0 0.0      0.0          0.0   available
+                6 stabilizer 0.0 0.0 0.0      0.0          0.0   available
+                7 stabilizer 0.0 0.0 0.0      0.0          0.0   available
+                8 stabilizer 0.0 0.0 0.0      0.0          0.0   available
     """
     if error_names is None:
         error_names = ["X", "Y", "Z"]
@@ -340,9 +340,11 @@ def generate_empty_qubit_errors(
         raise ValueError("Invalid set of error names")
 
     qubit_info = [
-        (qubit.equbit_idx, qubit.type.value)
-        for qubit in lattice.equbits
-        if not isinstance(qubit, LogicalVertex)
+        (
+            node,
+            t.cast(codes.NodeMetadata, code.embedded_graph.nodes_data[node]).type.name,
+        )
+        for node in range(code.num_qubits)
     ]
     qubit_pd = pd.DataFrame(qubit_info, columns=["qubit_id", "qubit_type"])
     for name in error_names:
@@ -457,16 +459,16 @@ class ErrorData:  # noqa: D101
     @classmethod
     def from_lattice(
         cls,
-        lattice: CodeLattice,
-        qubit_error_config: tuple[dict, str] | None = None,
-        gate_error_config: tuple[dict, str] | None = None,
+        code: codes.Code,
+        qubit_error_config: t.Optional[tuple[dict, str]] = None,
+        gate_error_config: t.Optional[tuple[dict, str]] = None,
     ) -> ErrorData:
         """Instantiate an :class:`ErrorData` object from lattice and error configs.
 
         Args:
-            lattice : lattice of the code being simulated.
-            qubit_error_config : configuration of qubit errors. Defaults to ``None``.
-            gate_error_config : configuration of gate errors. Defaults to ``None``.
+            code: code being simulated.
+            qubit_error_config: configuration of qubit errors. Defaults to ``None``.
+            gate_error_config: configuration of gate errors. Defaults to ``None``.
 
         Returns:
             An :class:`ErrorData` object containing the information of a given lattice.
@@ -482,9 +484,9 @@ class ErrorData:  # noqa: D101
               :attr:`~plaquette.frontend.GateErrorsConfig.simulated_errors`.
 
         Examples:
-            >>> from plaquette.codes import LatticeCode
-            >>> c = LatticeCode.make_five_qubit(n_rounds=1)
-            >>> errs = ErrorData.from_lattice(c.lattice)
+            >>> from plaquette import codes
+            >>> c = codes.Code.make_five_qubit()
+            >>> errs = ErrorData.from_lattice(c)
             >>> print(errs.gate_errors)
             Empty DataFrame
             Columns: [gate, on_qubits, induced_errors, probs]
@@ -509,12 +511,14 @@ class ErrorData:  # noqa: D101
         """
         ed_ui = cls()
         if qubit_error_config is None and gate_error_config is None:
+            qe = list()
+            # This for is basically only to satisfy mypy and avoid assuming that
+            # node_data is not None
+            for node in range(code.num_qubits):
+                if (data := code.embedded_graph.nodes_data[node]) is not None:
+                    qe.append((node, data.type.name))
             ed_ui.qubit_errors = pd.DataFrame(
-                [
-                    (qubit.equbit_idx, qubit.type.value)
-                    for qubit in lattice.equbits
-                    if not isinstance(qubit, LogicalVertex)
-                ],
+                qe,
                 columns=["qubit_id", "qubit_type"],
             )
             ed_ui.qubit_errors.set_index(["qubit_id"], drop=False, inplace=True)
@@ -528,22 +532,24 @@ class ErrorData:  # noqa: D101
             return ed_ui
 
         if qubit_error_config is not None:
-            ed_ui.qubit_errors = assimilate_qubit_errors(qubit_error_config, lattice)
+            ed_ui.qubit_errors = assimilate_qubit_errors(qubit_error_config, code)
             ed_ui.enabled_qubit_errors = set(qubit_error_config[0].keys())
 
         else:
+            qe = list()
+            # This for is basically only to satisfy mypy and avoid assuming that
+            # node_data is not None
+            for node in range(code.num_qubits):
+                if (data := code.embedded_graph.nodes_data[node]) is not None:
+                    qe.append((node, data.type.name))
             ed_ui.qubit_errors = pd.DataFrame(
-                [
-                    (qubit.equbit_idx, qubit.type.value)
-                    for qubit in lattice.equbits
-                    if not isinstance(qubit, LogicalVertex)
-                ],
+                qe,
                 columns=["qubit_id", "qubit_type"],
             )
             ed_ui.qubit_errors.set_index(["qubit_id"], drop=False, inplace=True)
 
         if gate_error_config is not None:
-            ed_ui.gate_errors = assimilate_gate_errors(gate_error_config, lattice)
+            ed_ui.gate_errors = assimilate_gate_errors(gate_error_config, code)
             ed_ui.enabled_gate_errors = set(gate_error_config[0].keys())
 
         else:
@@ -575,10 +581,22 @@ class ErrorData:  # noqa: D101
             ValueError: if the ``error_name`` is already a column in the dataframe.
 
         Examples:
-            >>> from plaquette.codes import LatticeCode
-            >>> c = LatticeCode.make_five_qubit(n_rounds=1)
-            >>> errs = ErrorData.from_lattice(c.lattice)
+            >>> from plaquette import codes
+            >>> c = codes.Code.make_five_qubit()
+            >>> errs = ErrorData.from_lattice(c)
             >>> errs.add_qubit_error(np.arange(9), "erasure",[0.2]*9)
+            >>> print(errs.qubit_errors.to_string(index=False))
+             qubit_id qubit_type    X    Y    Z erasure
+                    0       data  0.1  0.1  0.1     0.2
+                    1       data  0.1  0.1  0.1     0.2
+                    2       data  0.1  0.1  0.1     0.2
+                    3       data  0.1  0.1  0.1     0.2
+                    4       data  0.1  0.1  0.1     0.2
+                    5 stabilizer  0.1  0.1  0.1     0.2
+                    6 stabilizer  0.1  0.1  0.1     0.2
+                    7 stabilizer  0.1  0.1  0.1     0.2
+                    8 stabilizer  0.1  0.1  0.1     0.2
+
 
             .. code-block:: text
 
@@ -635,24 +653,23 @@ class ErrorData:  # noqa: D101
 
 
         Examples:
-            >>> from plaquette.codes import LatticeCode
-            >>> c = LatticeCode.make_five_qubit(n_rounds=1)
-            >>> errs = ErrorData.from_lattice(c.lattice)
+            >>> from plaquette import codes
+            >>> c = codes.Code.make_five_qubit()
+            >>> errs = ErrorData.from_lattice(c)
             >>> errs.update_qubit_error(list(np.arange(8)),"Y", [0.2]*8)
+            >>> print(errs.qubit_errors.to_string(index=False))
+             qubit_id qubit_type    X    Y    Z
+                    0       data  0.1  0.2  0.1
+                    1       data  0.1  0.2  0.1
+                    2       data  0.1  0.2  0.1
+                    3       data  0.1  0.2  0.1
+                    4       data  0.1  0.2  0.1
+                    5 stabilizer  0.1  0.2  0.1
+                    6 stabilizer  0.1  0.2  0.1
+                    7 stabilizer  0.1  0.2  0.1
+                    8 stabilizer  0.1  0.1  0.1
 
-            .. code-block:: text
 
-                          qubit_id qubit_type    X    Y    Z
-                qubit_id
-                0                0       data  0.1  0.2  0.1
-                1                1       data  0.1  0.2  0.1
-                2                2       data  0.1  0.2  0.1
-                3                3       data  0.1  0.2  0.1
-                4                4       data  0.1  0.2  0.1
-                5                5       stab  0.1  0.2  0.1
-                6                6       stab  0.1  0.2  0.1
-                7                7       stab  0.1  0.2  0.1
-                8                8       stab  0.1  0.1  0.1
         """
         if error_name == "fabrication":
             raise ValueError("Use the function update_fab_error() instead!")
@@ -821,9 +838,10 @@ class ErrorData:  # noqa: D101
 
         Examples:
             >>> from plaquette.circuit.generator import generate_qec_circuit
-            >>> from plaquette.codes import LatticeCode
-            >>> c = LatticeCode.make_five_qubit(n_rounds=1)
-            >>> errs = ErrorData.from_lattice(c.lattice)
+            >>> from plaquette import codes
+            >>> from plaquette.errors import ErrorData
+            >>> c = codes.Code.make_five_qubit()
+            >>> errs = ErrorData.from_lattice(c)
             >>> circ = generate_qec_circuit(
             ...     c, errs.qubit_errors_dict,
             ...     errs.gate_errors_dict, "X"
@@ -843,7 +861,7 @@ class ErrorData:  # noqa: D101
                 if k not in QubitErrorsDict.__optional_keys__:
                     raise KeyError(f"Invalid key: {k} for typed-dict QubitErrorsDict.")
                 errordata[k] = v  # type: ignore
-        return cast(ErrorDataDict, errordata)
+        return t.cast(ErrorDataDict, errordata)
 
     def save_to_csv(
         self, qubit_error_path: str | None = None, gate_error_path: str | None = None
@@ -952,7 +970,7 @@ class ErrorData:  # noqa: D101
         return gate_errors_dict
 
     def check_against_code(
-        self, code: LatticeCode, errordata: Optional[ErrorDataDict] = None
+        self, code: codes.Code, errordata: t.Optional[ErrorDataDict] = None
     ):
         """Check basic properties of error data dictionary.
 
@@ -996,7 +1014,7 @@ class ErrorData:  # noqa: D101
                 )
 
     def _check_single_phys_qubit_error(
-        self, error_dict: dict, code: LatticeCode, name: str, allowed_keys: set
+        self, error_dict: dict, code: codes.Code, name: str, allowed_keys: set
     ):
         """Check physical qubit index and parameter keys.
 
@@ -1010,23 +1028,23 @@ class ErrorData:  # noqa: D101
                 :class:`~.SinglePauliChannelErrorValueDict` or
                 :class:`~.ErrorValueDict`.
 
-        Returns:
-            None.
-
         Raises:
-            ValueError: If the key(qubit index) doesn't correspond to a data qubit.
-            ValueError: If the values(dictionary) doesn't have the keys corresponding to
-                its dictionary type.
+            ValueError: If the key (qubit index) doesn't correspond to a data qubit.
+            ValueError: If the values (dictionary) don't have the keys corresponding to
+                their dictionary type.
         """
-        for equbit_idx, params in error_dict.items():
-            code.lattice.check_equbit_is_data(equbit_idx, error=name)
+        for qubit_idx, params in error_dict.items():
+            if qubit_idx not in code.data_qubit_indices:
+                raise ValueError(
+                    f"Index {qubit_idx} for error {name} is not a data qubit"
+                )
             if invalid := set(params) - allowed_keys:
                 raise ValueError(
-                    f"{name} qubit {equbit_idx!r}: Invalid keys {invalid!r}"
+                    f"{name} qubit {qubit_idx!r}: Invalid keys {invalid!r}"
                 )
 
     def _check_single_stab_qubit_error(
-        self, error_dict: dict, code: LatticeCode, name: str, allowed_keys: set
+        self, error_dict: dict, code: codes.Code, name: str, allowed_keys: set
     ):
         """Check stabilizer ancilla qubit index and parameter keys.
 
@@ -1049,15 +1067,14 @@ class ErrorData:  # noqa: D101
                 its dictionary type.
 
         """
-        for equbit_idx, params in error_dict.items():
-            code.lattice.check_equbit_is_stabgen(equbit_idx, error=name)
+        for qubit, params in error_dict.items():
+            if qubit not in code.ancilla_qubit_indices:
+                raise ValueError(f"Index {qubit} for gate {name} is not an ancilla")
             if invalid := set(params) - allowed_keys:
-                raise ValueError(
-                    f"{name} qubit {equbit_idx!r}: Invalid keys {invalid!r}"
-                )
+                raise ValueError(f"{name} qubit {qubit!r}: Invalid keys {invalid!r}")
 
     def _check_twoqubit_gate_error(
-        self, error_dict: dict, code: LatticeCode, gate: str
+        self, error_dict: dict, code: codes.Code, gate: str
     ) -> None:
         """Check two qubit gate errors against the code.
 
@@ -1079,8 +1096,12 @@ class ErrorData:  # noqa: D101
         for qubits, errors in error_dict.items():
             if len(qubits) != 2:
                 raise ValueError(f"Two-qubit gates needs two arguments, got {qubits!r}")
-            code.lattice.check_equbit_is_stabgen(qubits[0], gate=gate)
-            code.lattice.check_equbit_is_data(qubits[1], gate=gate)
+            if qubits[0] not in code.ancilla_qubit_indices:
+                raise ValueError(f"Index {qubits[0]} for gate {gate} is not an ancilla")
+            if qubits[1] not in code.data_qubit_indices:
+                raise ValueError(
+                    f"Index {qubits[1]} for gate {gate} is not a data qubit"
+                )
 
             invalid = set(errors.keys()).issubset(
                 TwoPauliChannelErrorValueDict.__optional_keys__
@@ -1089,7 +1110,7 @@ class ErrorData:  # noqa: D101
                 raise ValueError(f"Invalid keys in gate: {gate!r}")
 
     def _check_onequbit_gate_error(
-        self, error_dict: dict, code: LatticeCode, gate: str
+        self, error_dict: dict, code: codes.Code, gate: str
     ) -> None:
         """Check one qubit gate errors against the code.
 
@@ -1108,8 +1129,9 @@ class ErrorData:  # noqa: D101
             ValueError: If the values(dictionary) doesn't have the keys corresponding to
                 its dictionary type.
         """
-        for equbit_idx, errors in error_dict.items():
-            code.lattice.check_equbit_is_stabgen(equbit_idx, gate=gate)
+        for qubit, errors in error_dict.items():
+            if qubit not in code.ancilla_qubit_indices:
+                raise ValueError(f"Index {qubit} for gate {gate} is not an ancilla")
             invalid = set(errors.keys()).issubset(
                 SinglePauliChannelErrorValueDict.__optional_keys__
             )
@@ -1117,7 +1139,7 @@ class ErrorData:  # noqa: D101
             if not invalid:
                 raise ValueError(f"Invalid keys for gate: {gate!r}")
 
-    def cache_full_code_indices(self, code: LatticeCode):
+    def cache_full_code_indices(self, code: codes.Code):
         """Cache the indices of the full code without fabrication errors.
 
         Args:
@@ -1126,11 +1148,14 @@ class ErrorData:  # noqa: D101
         Returns:
             None, updates the class
         """
-        self.__cached_code_indices__ = {
-            qubit.pos: qubit.equbit_idx
-            for qubit in code.lattice.equbits
-            if not isinstance(qubit, LogicalVertex)
-        }
+        # FIXME: @isolatedinformation needs to check this
+        qe = dict()
+        # This for is basically only to satisfy mypy and avoid assuming that
+        # node_data is not None
+        for node in range(code.num_qubits):
+            if (data := code.embedded_graph.nodes_data[node]) is not None:
+                qe[data.coords] = node
+        self.__cached_code_indices__ = qe
 
     # TODO: implement this
     # def toggle_fabrication_error(self, code: LatticeCode) -> LatticeCode:
@@ -1158,7 +1183,7 @@ class ErrorData:  # noqa: D101
 
 def assimilate_qubit_errors(
     qubit_error_config: tuple[dict, str],
-    lattice: CodeLattice,
+    lattice: codes.Code,
 ) -> pd.DataFrame:
     """Assimilate qubit errors from config class and CSV file.
 
@@ -1195,7 +1220,7 @@ def assimilate_qubit_errors(
                     qubit_pd.shape[0], qubit_error_config[0][label][1]
                 )
             case "gaussian":
-                qubit_pd[label] = np.random.default_rng().normal(
+                qubit_pd[label] = plaquette.rng.normal(
                     loc=qubit_error_config[0][label][1],
                     scale=qubit_error_config[0][label][2],
                     size=qubit_pd.shape[0],
@@ -1211,14 +1236,14 @@ def assimilate_qubit_errors(
 
 
 def assimilate_gate_errors(
-    gate_error_config: tuple[dict, str], lattice: CodeLattice
+    gate_error_config: tuple[dict, str], code: codes.Code
 ) -> pd.DataFrame:
     """Assimilate gate errors from config and CSV file.
 
     Args:
         gate_error_config : The output from
             :attr:`~plaquette.frontend.GateErrorsConfig.simulated_errors`
-        lattice : the lattice of the code being simulated
+        code: the :class:`.Code being simulated
 
     Returns:
         A dataframe of gate errors, typically used to set
@@ -1247,9 +1272,7 @@ def assimilate_gate_errors(
                                     pd.Series(
                                         dict(
                                             gate=label,
-                                            on_qubits=[
-                                                i.equbit_idx for i in lattice.stabgens
-                                            ],
+                                            on_qubits=code.ancilla_qubit_indices,
                                             induced_errors=[params[1]],
                                             probs=[params[2]],
                                         )
@@ -1261,19 +1284,21 @@ def assimilate_gate_errors(
                             )
 
                         elif params[0] == "gaussian":
-                            probs = np.random.default_rng().normal(
+                            probs = plaquette.rng.normal(
                                 loc=params[2],
                                 scale=params[3],
-                                size=len(lattice.stabgens),
+                                size=len(code.stabilizers),
                             )
-                            for i, p in zip(lattice.stabgens, probs):
+                            for i, p in zip(
+                                code.ancilla_qubit_indices, probs
+                            ):  # type: int, float
                                 gate_pd = pd.concat(
                                     [
                                         gate_pd,
                                         pd.Series(
                                             dict(
                                                 gate=label,
-                                                on_qubits=[i.equbit_idx],
+                                                on_qubits=[i],
                                                 induced_errors=[params[1]],
                                                 probs=[p],
                                             )
@@ -1287,12 +1312,15 @@ def assimilate_gate_errors(
                 case "CX" | "CZ":
                     for params in gate_error_config[0][label]:
                         on_qubits: list[int] = list()
-                        for stab in lattice.stabgens:
-                            for edge in stab.edges:
-                                on_qubits.extend(
-                                    [stab.equbit_idx, edge.data.equbit_idx]
+                        # fmt: off
+                        # FIXME: @isolatedinformation is this the job of the ancilla supports?  # noqa: E501
+                        for stab in code.ancilla_qubit_indices:  #                          │  # noqa: E501
+                            for data in code.embedded_graph.get_vertices_touching_vertex(stab):# │  # noqa: E501
+                                on_qubits.extend(  #                                        │  # noqa: E501
+                                    [stab, data]  #←───────────────────────┘  # noqa:
+                                    # E501
                                 )
-
+                        # fmt: on
                         if params[0] == "constant":
                             gate_pd = pd.concat(
                                 [
@@ -1312,7 +1340,7 @@ def assimilate_gate_errors(
                             )
 
                         elif params[0] == "gaussian":
-                            probs = np.random.default_rng().normal(
+                            probs = plaquette.rng.normal(
                                 loc=params[2],
                                 scale=params[3],
                                 size=len(on_qubits) // 2,

@@ -16,11 +16,9 @@ from jsonschema import validate
 from tqdm import tqdm
 
 import plaquette
-from plaquette import Device, decoders, visualizer
+from plaquette import Device, codes, decoders, visualizer
 from plaquette.circuit import Circuit, generator
-from plaquette.codes import LatticeCode
-from plaquette.codes.latticebase import CodeLattice
-from plaquette.decoders.decoderbase import check_success
+from plaquette.decoders import check_success
 from plaquette.device import AbstractSimulator, MeasurementSample
 from plaquette.errors import ErrorData, generate_empty_qubit_errors_csv
 from plaquette.frontend import schemas
@@ -194,11 +192,11 @@ class CodeConfig:
     def __str__(self) -> str:  # noqa: D105
         return pformat(self)
 
-    def instantiate(self) -> LatticeCode:
-        """Instantiate a :class:`~.LatticeCode` object with the objects' config.
+    def instantiate(self) -> codes.Code:
+        """Instantiate a :class:`~.codes.Code` object with the objects' config.
 
         Returns:
-            A :class:`~.LatticeCode` object.
+            A :class:`~.codes.Code` object.
 
         Examples:
             >>> code_conf = CodeConfig.from_dict(dict(name="FiveQubitCode", rounds=1))
@@ -206,19 +204,19 @@ class CodeConfig:
         """
         match self.name:
             case "ShorCode":
-                return LatticeCode.make_shor(n_rounds=self.rounds)
+                return codes.Code.make_shor(n_rounds=self.rounds)
             case "FiveQubitCode":
-                return LatticeCode.make_five_qubit(n_rounds=self.rounds)
+                return codes.Code.make_five_qubit(n_rounds=self.rounds)
             case "RepetitionCode":
-                return LatticeCode.make_repetition(size=self.size, n_rounds=self.rounds)
+                return codes.Code.make_repetition(size=self.size, n_rounds=self.rounds)
             case "PlanarCode":
-                return LatticeCode.make_planar(size=self.size, n_rounds=self.rounds)
+                return codes.Code.make_planar(size=self.size, n_rounds=self.rounds)
             case "RotatedPlanarCode":
-                return LatticeCode.make_rotated_planar(
+                return codes.Code.make_rotated_planar(
                     size=self.size, n_rounds=self.rounds
                 )
             case "ToricCode":
-                return LatticeCode.make_toric(size=self.size, n_rounds=self.rounds)
+                return codes.Code.make_toric(size=self.size, n_rounds=self.rounds)
             case _:
                 raise AttributeError(f"Attribute {self.name} could not be found!")
 
@@ -1516,11 +1514,11 @@ class CircuitConfig:
 
     def instantiate(
         self,
-        code: LatticeCode | None = None,
+        code: codes.Code | None = None,
         errors: ErrorData | None = None,
         logop_indices=None,
     ) -> Circuit:
-        """Instantiate a :class:`.LatticeCode` object with the objects' config.
+        """Instantiate a :class:`.codes.Code` object with the objects' config.
 
         Args:
             code : The specified code to simulate
@@ -1534,7 +1532,7 @@ class CircuitConfig:
 
         Examples:
             >>> conf =  CircuitConfig.from_dict(dict(name="FiveQubitCode", rounds=1))
-            >>> c = LatticeCode.make_five_qubit(n_rounds=1)
+            >>> c = codes.Code.make_five_qubit(n_rounds=1)
             >>> errs = ErrorData.from_lattice(c.lattice)
             >>> circ = conf.instantiate(code=c, errors=errs, logop_indices='X')
         """
@@ -1552,7 +1550,7 @@ class CircuitConfig:
                     "Please pass non-None code and errors to the function."
                 )
             ret_val = generator.generate_qec_circuit(
-                cast(LatticeCode, code),
+                cast(codes.Code, code),
                 errors.qubit_errors_dict,
                 errors.gate_errors_dict,
                 logop_indices,
@@ -1731,7 +1729,7 @@ class DecoderConfig:
 
         self.__post_init__()
 
-    def instantiate(self, code: LatticeCode, ed: ErrorData):
+    def instantiate(self, code: codes.Code, ed: ErrorData):
         """Instantiate the ``decoder`` with the objects' config.
 
         Args:
@@ -1752,7 +1750,7 @@ class DecoderConfig:
 
         Examples:
             >>> conf =  DecoderConfig.from_dict(dict(name="PyMatchingDecoder"))
-            >>> c = LatticeCode.make_five_qubit(n_rounds=1)
+            >>> c = codes.Code.make_five_qubit(n_rounds=1)
             >>> errors = ErrorData.from_lattice(c.lattice)
             >>> dec = conf.instantiate(code =c, ed=errors)
         """
@@ -1825,7 +1823,7 @@ class ExperimentConfig:
     Defaults to an :class:`~DecoderConfig` object with default values.
     """
 
-    _code: LatticeCode | None = None
+    _code: codes.Code | None = None
     _errors: ErrorData | None = None
     _device: Type[AbstractSimulator] | None = None
     _circuit: Circuit | None = None
@@ -1835,11 +1833,11 @@ class ExperimentConfig:
         plaquette.rng = np.random.default_rng(seed=self.general_conf["seed"])
 
     @property
-    def code(self) -> LatticeCode:
-        """The built :class:`.LatticeCode` object in the experiment."""
+    def code(self) -> codes.Code:
+        """The built :class:`.codes.Code` object in the experiment."""
         if self._code is None:
             self.build_code()
-        return cast(LatticeCode, self._code)
+        return cast(codes.Code, self._code)
 
     @property
     def errors(self) -> ErrorData:
@@ -2155,7 +2153,7 @@ class ExperimentConfig:
         self.build_decoder()
 
     def build_code(self) -> None:
-        """Build the :class:`.LatticeCode` object.
+        """Build the :class:`.codes.Code` object.
 
         Built object is accessible through :class:`ExperimentConfig.code`
 
@@ -2221,7 +2219,7 @@ class ExperimentConfig:
             )
 
         self._decoder = self.decoder_conf.instantiate(
-            cast(LatticeCode, self._code),
+            cast(codes.Code, self._code),
             cast(ErrorData, self._errors),
         )  # type: ignore
 
@@ -2235,7 +2233,7 @@ class ExperimentConfig:
             None, creates the `csv` at the given path.
         """
         return generate_empty_qubit_errors_csv(
-            lattice=cast(LatticeCode, self._code).lattice, csv_path=path
+            lattice=cast(codes.Code, self._code).lattice, csv_path=path
         )
 
     def dump_toml(self, toml_path: str) -> None:

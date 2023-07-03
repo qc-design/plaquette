@@ -6,8 +6,8 @@ import numpy as np
 import pytest as pt
 
 import plaquette
+from plaquette import codes as codes
 from plaquette.circuit.generator import QECCircuitGenerator, generate_qec_circuit
-from plaquette.codes import LatticeCode
 from plaquette.device import Device, MeasurementSample
 from plaquette.errors import (
     ErrorValueDict,
@@ -30,7 +30,7 @@ def gate_errordata():
 
 @pt.fixture
 def code():
-    return LatticeCode.make_repetition(n_rounds=1, size=3)
+    return codes.Code.make_repetition(3)
 
 
 class TestQECCircuitGenerator:
@@ -55,41 +55,35 @@ class TestQECCircuitGenerator:
     )
     def test_apply_dataqubit_errors(
         self,
-        code: LatticeCode,
+        code: codes.Code,
         qubit_errors: QubitErrorsDict,
         last_instruction: str,
     ):
-        circgen = QECCircuitGenerator(code, qubit_errors, GateErrorsDict())
+        circgen = QECCircuitGenerator(code, qubit_errors, GateErrorsDict(), 1)
         circgen.apply_dataqubit_errors()
         assert str(circgen.cb.circ).split("\n")[-1] == last_instruction
 
     @pt.mark.parametrize(
-        "log_ops, num_gates, gates, logical_ancilla_bool",
+        "log_ops, num_gates, gates",
         [
-            ([0], 7, ["R 5", "H 5", "CX 5 0", "CX 5 1", "CX 5 2", "H 5", "M 5"], True),
-            ([1], 5, ["R 6", "H 6", "CZ 6 2", "H 6", "M 6"], True),
             (
                 [0],
                 9,
                 ["H 0", "M 0", "H 0", "H 1", "M 1", "H 1", "H 2", "M 2", "H 2"],
-                False,
             ),
-            ([1], 1, ["M 2"], False),
+            ([1], 1, ["M 0"]),
         ],
     )
     def test_measure_logical_ops(
         self,
         qubit_errordata: QubitErrorsDict,
         gate_errordata: GateErrorsDict,
-        code: LatticeCode,
+        code: codes.Code,
         log_ops: Sequence[int],
         num_gates: int,
         gates: Sequence[str],
-        logical_ancilla_bool: bool,
     ):
-        circgen = QECCircuitGenerator(
-            code, qubit_errordata, gate_errordata, logical_ancilla_bool
-        )
+        circgen = QECCircuitGenerator(code, qubit_errordata, gate_errordata, 1)
         circgen.measure_logical_ops(log_ops)
         assert str(circgen.cb.circ).split("\n")[-num_gates:] == gates
 
@@ -119,11 +113,11 @@ class TestQECCircuitGenerator:
         self,
         qubit_errordata: QubitErrorsDict,
         gate_errordata: GateErrorsDict,
-        code: LatticeCode,
+        code: codes.Code,
         num_gates: int,
         gates: Sequence[str],
     ):
-        circgen = QECCircuitGenerator(code, qubit_errordata, gate_errordata)
+        circgen = QECCircuitGenerator(code, qubit_errordata, gate_errordata, 1)
         circgen.measure_stabgens(with_errors=False)
         assert str(circgen.cb.circ).split("\n")[-num_gates:] == gates
 
@@ -161,7 +155,7 @@ class TestQECCircuitGenerator:
     )
     def test_measure_stabgens_errors(
         self,
-        code: LatticeCode,
+        code: codes.Code,
         qubit_errordata: QubitErrorsDict,
         gate_errs: GateErrorsDict,
         gate_instr: str,
@@ -169,7 +163,7 @@ class TestQECCircuitGenerator:
     ):
         # errordata.update_by_index(*params)
 
-        circgen = QECCircuitGenerator(code, qubit_errordata, gate_errs)
+        circgen = QECCircuitGenerator(code, qubit_errordata, gate_errs, 1)
         circgen.measure_stabgens(with_errors=True)
 
         gatelist = circgen.cb.circ.__str__().split("\n")
@@ -183,8 +177,7 @@ class TestQECCircuitGenerator:
     def test_generated_syndrome(self):
         """Flip all X stabiliser measurements and check relative syndrome."""
         plaquette.rng = np.random.default_rng(seed=62934814123)
-        code = LatticeCode.make_planar(n_rounds=1, size=4)
-        # Code has same dataqubits/edges/equbit props as `master`.
+        code = codes.Code.make_planar(4)
         qubit_errors = QubitErrorsDict(
             pauli={
                 4: SinglePauliChannelErrorValueDict(z=1),
@@ -196,14 +189,14 @@ class TestQECCircuitGenerator:
             }
         )
 
-        circ = generate_qec_circuit(code, qubit_errors, GateErrorsDict(), "X")
+        circ = generate_qec_circuit(code, qubit_errors, {}, "X")
 
         dev = Device("clifford")
         dev.run(circ)
         raw, erasure = dev.get_sample()
-        results = MeasurementSample.from_code_and_raw_results(code, raw, erasure)
+        results = MeasurementSample.from_code_and_raw_results(code, raw, erasure, 1)
         # fmt: off
         assert (results.syndrome == np.array([
-            [0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0]
+            [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
         ], dtype='u1')).all()
         # fmt: on
