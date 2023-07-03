@@ -163,6 +163,7 @@ further enhancing the functionality and user experience of the library.
    :hidden:
 
    dev/index
+   dev/new_backend
 
 
 Indices and tables
