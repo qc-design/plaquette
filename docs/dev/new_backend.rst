@@ -40,7 +40,7 @@ Backend API
 
 The set of required backend methods and their signatures are:
 
-* The ``run`` method to run a quantum circuit.
+* The ``run`` method to run a quantum circuit;
 
 .. code-block:: python
 
@@ -52,15 +52,19 @@ The set of required backend methods and their signatures are:
 
     get_sample(self) -> Tuple[List[Union[List[Any], Any]], Optional[List[None]]]
 
-Remote backends may also implement the ``is_completed(self) -> List[bool]``
-property that determines which jobs have been completed for the list of jobs
-submitted using the device.
+There are additional optional backend methods and properties for certain backends:
 
-Simulator backends that allow obtaining the underlying quantum state may also
-either define a ``state(self) -> device.QuantumState`` property or maintain a
-``self.state: device.QuantumState`` attribute to allow :class:`.Device` access
-the quantum state.
+* Remote backends may implement the ``is_completed(self) -> List[bool]``
+  property to determine which jobs have been completed for the list of
+  submitted jobs;
+* Simulator backends that allow obtaining the underlying quantum state may
+  either define a ``state(self) -> device.QuantumState`` property or maintain a
+  ``self.state: device.QuantumState`` attribute to allow :class:`.Device`
+  access the quantum state;
+* Simulator backends may also either define a ``n_qubits(self) -> int`` property or
+  maintain a ``self.n_qubits: int`` attribute to describe the number of qubits
+  of the quantum circuit.
 
-Furthermore, all arguments and keyword arguments passed to :class:`.Device` upon creation are later passed to the underlying backend object. Therefore, custom methods and properties may also be implemented in new backends that may take arguments passed at the time of creation.
+Furthermore, all arguments and keyword arguments passed when creating a :class:`.Device` object are later passed to the underlying backend class. Therefore, methods and properties implemented in new backends may take custom arguments that can simply be passed when creating a device.
 
 If you have any questions or suggestions related to creating new backends, feel free to open a `new GitHub issue <https://github.com/qc-design/plaquette/issues/new/choose>`_!
