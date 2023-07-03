@@ -600,14 +600,25 @@ This algorithm consists of two sub-algorithms:
   can be done by choosing a seed (if the code has an open boundary, then the open
   vertices are first chosen as seeds), and *walking* through the erasure by adding
   edges if only one of its vertices is already in the forest. If both vertices are
-  already in the forest, the edge is discarded. If a connected sub-graph is not
-  connected to an open vertex, we can choose randomly any of its vertices as the
+  already in the forest, the edge is discarded. 
+
+Comment: It is important here to mention that when creating a forest for a connect sub-graph starting containing an open vertex, newly reached vertices are not open vertices. To explain this, we can write, for example:
+
+For a connected sub-graph containing an open vertex (called a seed), the process is done by starting with a seed, then adding edges that reach new vertices (i.e., if both vertices are already in the forest, the edge is discarded) but also require that these newly reached vertices are not open vertices.
+
+If a connected sub-graph is not connected to an open vertex, we can choose randomly any of its vertices as the
   seed. The figure below shows how the forest is created in a graph of a planar code
   of distance :math:`4` (we are only showing the edges that represent :math:`Z`
   errors for simplicity):
 
   .. image:: forest.png
      :width: 300px
+
+Comment: It will be helpful to explain the above figure details. For example, we can explain:
+
+a) Here Red lines indicate an erasure :math:`\mathcal{R}`, and red nodes indicate the syndrome. b)-d) The process of constructing a forest, with open vertices as seeds. Arrows indicate the direction the forest is grown. Green lines indicate edges included in the forest. We discard those edges for which either both vertices of the edge are already in the forest or if newly reached vertices (through this edge) is an open vertex.
+
+Another comment: it will be good to show all arrows (the way the forest is grown) in figures c)-d). As the peeling of the forest is done by reversing the construction of the forest (i.e., peeling it the other way round of what the arrows indicate).
 
   Finally, the forest is peeled from its *leaves*. We call a *leaf* an edge that is
   connected to the rest of the erasure through only one of its vertices, while the
@@ -618,11 +629,27 @@ This algorithm consists of two sub-algorithms:
   vertex, then the edge is added to the correction operator. Then, the state of the
   non-pendant vertex of the leaf is flipped: if the non-pendant vertex was a syndrome
   vertex, then it will no longer be a syndrome vertex; if the non-pendant vertex
-  wasn't a syndrome vertex, it will now become a syndrome vertex. Below you can find
-  an example of how the peeling is performed, and how the correction is obtained.
+  wasn't a syndrome vertex, it will now become a syndrome vertex. 
+
+Comment: To add more clarity of peeling, we can write, for example as follows:
+
+The peeling process is done by starting from the opposite direction the forest was constructed. The forest is peeled from its *leaves*. A *leaf* is an edge, say {u, v}, which is connected to the forest through only one of its vertices, say v. We call the vertex u as *pendant vertex*. The peeling process is as follows:
+
+pick a leaf edge {u, v} with pendant vertex u, remove this leaf edge from the forest, and apply these two rules:
+
+(1) If the pendant vertex u **is not** a syndrome vertex, then we do nothing.
+(2) If the pendant vertex u **is** a syndrome vertex, then this leaf edge {u, v} is added to the correction operator, and the
+  non-pendant vertex v of this leaf is flipped: i.e., if the non-pendant vertex was a syndrome vertex, then it will no longer be a syndrome vertex; if the non-pendant vertex wasn't a syndrome vertex, it will now become a syndrome vertex. Repeat this process until the forest is empty, i.e., contains no edges. 
+
+Below you can find an example of how the peeling is performed, and how the correction is obtained.
 
   .. image:: peeling.png
      :width: 300px
+
+Comment: Adding a description of the figure will be helpful for readers. We can give a short description, for example:
+
+In this figure, at the first step (t=1), we start with all pendant vertices and apply the above 2 rules to remove the leaf edges from the forest. In the second and third steps (t=2,3), we repeat the above process until the forest is empty. Here black tilted line on the edge means, the edge is removed from the forest. A Red tilted line on an edge indicates correction needs to be applied on that edge and the edge is removed from the forest.
+
 
   This decoding algorithm works only for erasures. The extra information regarding
   the location of the erasures is what gives this algorithm a linear complexity. One
