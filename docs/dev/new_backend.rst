@@ -5,7 +5,7 @@
 How to create a new backend?
 ============================
 
-The error correction pipeline of plaquette involves running the quantum circuit that represents a quantum error correcting code. To run the quantum circuit on a quantum device, plaquette provides the ``Device`` object which can be used with various backends, for example with the Clifford local backend:
+The error correction pipeline of plaquette involves running the quantum circuit that represents a quantum error correcting code. To run the quantum circuit on a quantum device, plaquette provides the :class:`.Device` object which can be used with various backends, for example with the Clifford local backend:
 
 .. code-block:: python
 
@@ -13,7 +13,7 @@ The error correction pipeline of plaquette involves running the quantum circuit 
     device = Device("clifford")
     device.run(circuit)
 
-The ``Device`` object maintains a backend object under the hood. Although
+The :class:`.Device` object maintains a backend object under the hood. Although
 plaquette comes with built-in backends and it is also extensible with new
 backends which can be developed and integrated into plaquette via the following
 steps:
@@ -30,7 +30,7 @@ The following section may be placed in the ``pyproject.toml`` file:
     [project.entry-points."plaquette.device"]
     my_backend_name = "plaquette_my_backend.backend:MyBackend"
 
-where ``my_backend_name`` will be the name that can be passed to ``Device`` to use the new backend, the new backend package name is ``plaquette_my_backend`` and the backend implementation is represented with the ``MyBackend`` class which is placed in the ``backend`` module of the package.
+where ``my_backend_name`` will be the name that can be passed to :class:`.Device` to use the new backend, the new backend package name is ``plaquette_my_backend`` and the backend implementation is represented with the ``MyBackend`` class which is placed in the ``backend`` module of the package.
 
 We refer to the `plaquette-ibm-backend <https://github.com/qc-design/plaquette-ibm-backend>`_ package as an example of a backend for exact packaging details.
 
@@ -48,6 +48,6 @@ submitted using the device.
 Simulators that allow obtaining the underlying quantum state of the backend may
 also define the ``state`` property to access such a state.
 
-Furthermore, all arguments and keyword arguments passed to ``Device`` upon creation are later passed to the underlying backend object. Therefore, custom methods and properties may also be implemented in new backends that may take arguments passed at the time of creation.
+Furthermore, all arguments and keyword arguments passed to :class:`.Device` upon creation are later passed to the underlying backend object. Therefore, custom methods and properties may also be implemented in new backends that may take arguments passed at the time of creation.
 
 If you have any suggestions or questions related to creating new device backends, feel free to open a new GitHub issue!
