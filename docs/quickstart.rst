@@ -124,28 +124,27 @@ We're setting out to study the :term:`threshold` behaviour of a :term:`QECC`,
 so we need to choose one. One of the most studied ones is the planar code and,
 given its ubiquity, ``plaquette`` makes it simple to use with zero effort.
 
->>> from plaquette.codes import LatticeCode
->>> code = LatticeCode.make_planar(n_rounds=1, size=4)
+>>> from plaquette import codes
+>>> code = codes.Code.make_planar(3)
 >>> code  # doctest: +ELLIPSIS
-<plaquette.codes.LatticeCode object at ...>
+<plaquette.codes.Code object at ...>
 
-That's it. ``code`` is a :class:`.LatticeCode` object, and if
+That's it. ``code`` is a :class:`.Code` object (plot twist), and if
 you're curious about its inner workings you can have a look at its API. For
 our purposes (of being in the middle of a *quick* start), we don't care
-too much. The only important thing to remember is that ``.LatticeCode`` is a
-:term:`QECC` defined on a *square lattice*, hence the name.
+too much. The only important thing to remember is that ``.Code`` is a
+:term:`QECC`.
 
 .. note:: As you might have guessed, there are other common codes that
    ``plaquette`` supports and fittingly there is a ``make_*`` method for
-   each of them, listed in the :class:`.LatticeCode` API
+   each of them, listed in the :class:`.Code` API
    description, where the asterisk is just a placeholder for the various types
    of code you might want to create and which are currently implemented (e.g.
-   :meth:`~.LatticeCode.make_toric`, :meth:`~.LatticeCode.make_planar`, etc.).
+   :meth:`~.Code.make_rotated_planar`, :meth:`~.Code.make_planar`, etc.).
 
-:class:`.LatticeCode` internally stores a :class:`.CodeLattice`, which is a
+:class:`.Code` internally stores a :class:`.AnnotatedSparseGraph`, which is a
 graph-like object that contains the relationship between the various
-vertices (:class:`~.latticebase.Vertex`) connected via edges
-(:class:`~.latticebase.Edge`). You don't need to care about it when using
+vertices connected via edges. You don't need to care about it when using
 pre-defined codes, as the lattice will be automatically generated for you, but
 you should keep in mind that this exists. It will be especially important if
 you want to come up with your own code topologies and implement them in such
@@ -159,11 +158,11 @@ pre-defined ones.
 Take a look!
 ------------
 
-You can have a look at what a :class:`.LatticeCode` looks like by feeding it to
-the :class:`.LatticeVisualizer`.
+You can have a look at what a :class:`.Code` looks like by feeding it to
+the :class:`.Visualizer`.
 
->>> from plaquette.visualizer import LatticeVisualizer
->>> visualizer = LatticeVisualizer(code)
+>>> from plaquette.visualizer import Visualizer
+>>> visualizer = Visualizer(code)
 >>> # if you're in a Jupyter notebook, try visualizer.draw_lattice()
 >>> visualizer.draw_lattice_mpl()
 
@@ -245,7 +244,7 @@ covered here.
 Wiring a circuit
 ----------------
 
-With a :class:`~.LatticeCode` and error dictionaries, ``plaquette``
+With a :class:`~.Code` and error dictionaries, ``plaquette``
 allows you to create a :class:`~.Circuit` that can be efficiently simulated.
 The underlying :class:`~.CodeLattice` in the code holds the information on how
 to measure the stabilisers that make up the selected code, and it's very easy
@@ -396,20 +395,21 @@ operators.
 
 .. caution::
 
-   By default, a device with a local backend will reset itself such that
-   running it will make it generate a sample from a clean state. The
-   ``clifford`` backend supports also runing *without* resetting its internal
-   state and will keep accumulating measurement results
+   Drawing a single sample will make the device run through the entire
+   circuit without stopping and will keep accumulating measurement results
    such that, at each new sample, ``raw_results`` and ``erasure`` will have
-   *all* results from all runs, and the internal quantum state will be
-   whatever it was after the previous circuit finished running.
+   *all* results from all samples, and the internal quantum state will be
+   whatever it was after the previous circuit finished running. If you want to
+   generate many samples starting always from a clean state, you can call
+   ``device.get_sample(after_reset=True)`` instead. This will reset the
+   corresponding internal attributes of local backends used.
 
 Since we didn't manually make this circuit, but rather it was generated from
 a code, we make sense of the single values in this array by "unpacking it"
 with the help of :meth:`.MeasurementSample.from_code_and_raw_results`.
 
 >>> from plaquette.device import MeasurementSample
->>> sample = MeasurementSample.from_code_and_raw_results(code, raw_results, erasure)
+>>> sample = MeasurementSample.from_code_and_raw_results(code, 1, raw_results, erasure)
 
 The :class:`.MeasurementSample` object contains a wealth of information about our
 simulation shot. In particular, it contains the necessary data that are
@@ -423,7 +423,7 @@ There would be no point in quantum error *correction* without *correcting*
 anything, and simply taking the results from the simulation at face value.
 This is where the "second half" of ``plaquette`` comes into play: its decoders.
 
-Given the chosen :class:`.LatticeCode`, its error models, and the obtained
+Given the chosen :class:`.Code`, its error models, and the obtained
 :class:`.MeasurementSample` you can now feed all these information to one of the
 decoders implemented or supported by ``plaquette``.
 
@@ -432,9 +432,8 @@ decoders and give you a uniform interface. I mean, a decoder needs to do
 *one* thing: tell you which correction operator to apply in order to correct
 errors, if any. This is where the
 :mod:`~plaquette.decoders.decoderbase.DecoderInterface` comes into play. This
-is the common interface to all decoders ``plaquette`` supports.
-
-Currently, ``plaquette`` supports the following decoders:
+is the common interface to all decoders ``plaquette`` supports. Currently,
+``plaquette`` supports the following decoders:
 
 :class:`~.interfaces.PyMatchingDecoder`
    which is an interface to
@@ -442,12 +441,14 @@ Currently, ``plaquette`` supports the following decoders:
 :class:`~.interfaces.FusionBlossomDecoder`
    which is an interface to
    `fusion-blossom <https://github.com/yuewuo/fusion-blossom>`_;
-:class:`~plaquette_unionfind.unionfind.UnionFindDecoderInterface`
-   which is an interface to an extremely fast implementation of the
-   :cite:`delfosse_almost-linear_2021` algorithm. It's developed in tandem with
-   ``plaquette`` and you can find its source code
-   `here <https://github.com/qc-design/plaquette-unionfind>`_. *This needs to
-   be installed separately!* A simple ``pip install plaquette_unionfind`` will do.
+:class:`~.interfaces.UnionFindDecoder`
+   which is a custom implementation of the Union Find
+   :cite:`delfosse_almost-linear_2021` algorithm written in Python.
+
+
+In particular, the :class:`~plaquette.decoders.interfaces.UnionFindDecoder` decoder,
+is a unique feature of ``plaquette``, and it's the only decoder that supports
+erasure errors, which we have defined above.
 
 All decoders, being a specialization of the generic :class:`.DecoderInterface`,
 have the same two important user-facing methods:
@@ -457,13 +458,13 @@ and the second will try to calculate the necessary correction operator given
 the results of the simulation and error data information.
 
 .. hint:: *All* decoders have *the same* public-facing API, meaning that they
-   are drop-in replacement for one-another. In the following snippets,
-   replacing ``UnionFindDecoderInterface`` with ``PyMatchingDecoder`` or with
+   are drop-in replacement for one-another. In the following snippet,
+   replacing ``UnionFindDecoder`` with ``PyMatchingDecoder`` or with
    ``FusionBlossomDecoder`` is enough to use a radically different decoding
    algorithm on *the same* input code and measurement outcomes!
 
->>> from plaquette_unionfind import UnionFindDecoderInterface as UnionFindDecoder
->>> decoder = UnionFindDecoder.from_code(code, qed, weighted=False)
+>>> from plaquette.decoders import UnionFindDecoder
+>>> decoder = UnionFindDecoder.from_code(code, qed, weighted=True)
 >>> correction = decoder.decode(sample.erased_qubits, sample.syndrome)
 >>> correction  # doctest: +ELLIPSIS
 array([...], dtype=uint8)
@@ -507,18 +508,17 @@ error rate*.
 ...     device.run(circuit)
 ...     raw, erasure = device.get_sample()
 ...     results = MeasurementSample.from_code_and_raw_results(code, raw, erasure)
-...     decoder = UnionFindDecoder.from_code(code, qed, weighted=False)
 ...     correction = decoder.decode(results.erased_qubits, results.syndrome)
 ...     if check_success(
 ...         code, correction, results.logical_op_toggle, logical_operator
 ...     ):
 ...         successes += 1
 >>> 1 - successes / reps # doctest: +ELLIPSIS
-0.024...
+0.038...
 
 If we combine this with changing the error rates and the size of the code, we
-can calculate the threshold of the code. We can switch to the ``"stim"``
-backend to speed things up and calculate thousands of repetitions per data point.
+can calculate the threshold of the code. We can switch to the `Stim`_ simulator
+to speed things up and calculate 1000 repetitions per data point.
 
 .. warning:: The following script will take a fairly **long** time if you run
    it sequentially! We recommend using something like
@@ -534,22 +534,22 @@ backend to speed things up and calculate thousands of repetitions per data point
 
    import plaquette
    from plaquette.circuit.generator import generate_qec_circuit
-   from plaquette.codes import LatticeCode
+   from plaquette.codes import SubsystemCode
+   from plaquette.decoders import UnionFindDecoder
    from plaquette.device import MeasurementSample
    from plaquette.decoders.decoderbase import check_success
 
-   from plaquette_unionfind import UnionFindDecoderInterface as UnionFindDecoder
 
    plaquette.rng = np.random.default_rng(seed=1234567890)
 
    data = {}
    sizes = [11, 13, 15, 17]
-   pauli_x_rates = np.linspace(0.01, 0.25, 10)
+   pauli_x_rates = np.linspace(0.01, 0.25, 20)
    logical_op = "X"
-   reps = 2**13
+   reps = 2**14
    for sz in sizes:
        data[sz] = {}
-       code = LatticeCode.make_planar(n_rounds=1, size=sz)
+       code = SubsystemCode.make_planar(n_rounds=1, size=sz)
        for error_rate in pauli_x_rates:
            qed = {
                "pauli": {
@@ -559,14 +559,14 @@ backend to speed things up and calculate thousands of repetitions per data point
            }
            circuit = generate_qec_circuit(code, qed, {}, logical_op)
            device = Device("stim")
+           device.run(circuit)
+           decoder = UnionFindDecoder.from_code(code, qed, weighted=True)
            successes = 0
            for _ in range(reps):
-               device.run(circuit)
                raw_results, erasure = device.get_sample()
                sample = MeasurementSample.from_code_and_raw_results(
                   code, raw_results, erasure
                )
-               decoder = UnionFindDecoder.from_code(code, qed, weighted=False)
                correction = decoder.decode(sample.erased_qubits, sample.syndrome)
                if check_success(
                    code, correction, sample.logical_op_toggle, logical_op
@@ -577,7 +577,6 @@ backend to speed things up and calculate thousands of repetitions per data point
    plt.xlabel("Depolarization probability")
    plt.ylabel("Logical error rate")
    plt.legend()
-   plt.show()
 
 .. figure:: qs_threshold.svg
    :align: center

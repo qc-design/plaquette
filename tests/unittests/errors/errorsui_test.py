@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 import pytest as pt
 
-from plaquette.codes import LatticeCode
+from plaquette.codes import Code
 from plaquette.errors import (
     ErrorData,
     assimilate_gate_errors,
@@ -103,11 +103,13 @@ def test_generate_constant_errors(val):
 @pt.mark.parametrize(
     "code",
     [
-        LatticeCode.make_rotated_planar(size=3, n_rounds=10),
-        LatticeCode.make_planar(size=3, n_rounds=10),
-        LatticeCode.make_repetition(size=9, n_rounds=3),
-        LatticeCode.make_five_qubit(n_rounds=10),
-        LatticeCode.make_shor(n_rounds=6),
+        Code.make_rotated_planar(distance=3),
+        Code.make_planar(distance=3),
+        Code.make_repetition(
+            distance=9,
+        ),
+        Code.make_five_qubit(),
+        Code.make_shor(),
     ],
 )
 @pt.mark.parametrize(
@@ -122,19 +124,20 @@ def test_generate_constant_errors(val):
     ],
 )
 def test_generate_empty_qubit_errors(code, error_names):
-    df = generate_empty_qubit_errors(code.lattice, error_names)
+    df = generate_empty_qubit_errors(code, error_names)
     assert not set(df.keys()).difference(set(["qubit_id", "qubit_type"] + error_names))
     for key in error_names:
         if key == "fabrication":
-            assert len(df[key]) == code.n_data_qubits + code.n_stabgens
+            assert len(df[key]) == code.num_data_qubits + code.num_stabilizers
             assert all(
-                df[key].array == ["available"] * (code.n_data_qubits + code.n_stabgens)
+                df[key].array
+                == ["available"] * (code.num_data_qubits + code.num_stabilizers)
             )
         else:
-            assert len(df[key]) == code.n_data_qubits + code.n_stabgens
+            assert len(df[key]) == code.num_data_qubits + code.num_stabilizers
             assert np.all(
                 np.array_equal(
-                    df[key].array, np.zeros(code.n_data_qubits + code.n_stabgens)
+                    df[key].array, np.zeros(code.num_data_qubits + code.num_stabilizers)
                 )
             )
 
@@ -177,25 +180,26 @@ def test_generate_empty_qubit_errors(code, error_names):
 @pt.mark.parametrize(
     "code",
     [
-        LatticeCode.make_rotated_planar(size=3, n_rounds=10),
-        LatticeCode.make_planar(size=3, n_rounds=10),
-        LatticeCode.make_repetition(size=9, n_rounds=3),
-        LatticeCode.make_five_qubit(n_rounds=10),
-        LatticeCode.make_shor(n_rounds=6),
+        Code.make_rotated_planar(distance=3),
+        Code.make_planar(distance=3),
+        Code.make_repetition(distance=9),
+        Code.make_five_qubit(),
+        Code.make_shor(),
     ],
 )
 def test_assimilate_qubit_errors_and_no_csv(qubit_error_config: tuple[dict, str], code):
-    df = assimilate_qubit_errors(qubit_error_config, code.lattice)
+    df = assimilate_qubit_errors(qubit_error_config, code)
     assert np.array_equal(
-        df["qubit_id"], np.arange(code.n_data_qubits + code.n_stabgens)
+        df["qubit_id"], np.arange(code.num_data_qubits + code.num_stabilizers)
     )
     assert np.array_equal(
-        df["qubit_type"], ["data"] * code.n_data_qubits + ["stab"] * code.n_stabgens
+        df["qubit_type"],
+        ["data"] * code.num_data_qubits + ["stabilizer"] * code.num_stabilizers,
     )
     for key, val in qubit_error_config[0].items():
         if val[0] == "constant":
             assert np.array_equal(
-                df[key], [val[1]] * (code.n_data_qubits + code.n_stabgens)
+                df[key], [val[1]] * (code.num_data_qubits + code.num_stabilizers)
             )
         elif val[0] == "gaussian":
             assert (val[1] - 3 * val[2]) < np.mean(df[key]) < (val[1] + 3 * val[2])
@@ -235,15 +239,15 @@ def test_assimilate_qubit_errors_and_no_csv(qubit_error_config: tuple[dict, str]
 @pt.mark.parametrize(
     "code",
     [
-        LatticeCode.make_rotated_planar(size=3, n_rounds=10),
-        LatticeCode.make_planar(size=3, n_rounds=10),
-        LatticeCode.make_repetition(size=9, n_rounds=3),
-        LatticeCode.make_five_qubit(n_rounds=10),
-        LatticeCode.make_shor(n_rounds=6),
+        Code.make_rotated_planar(distance=3),
+        Code.make_planar(distance=3),
+        Code.make_repetition(distance=9),
+        Code.make_five_qubit(),
+        Code.make_shor(),
     ],
 )
 def test_assimilate_gate_errors_and_no_csv(gate_error_config: tuple[dict, str], code):
-    df = assimilate_gate_errors(gate_error_config, code.lattice)
+    df = assimilate_gate_errors(gate_error_config, code)
     index = 0
     for gate, val in gate_error_config[0].items():
         gate_subframe = df.loc[df.gate == gate]
@@ -255,19 +259,36 @@ def test_assimilate_gate_errors_and_no_csv(gate_error_config: tuple[dict, str], 
                     assert (
                         len(gate_subframe.iloc[index]["on_qubits"])
                         == sum(
-                            [1 for stab in code.lattice.stabgens for edge in stab.edges]
+                            [
+                                1
+                                for stab in code.ancilla_qubit_indices
+                                # fmt: off
+                                for _ in code.embedded_graph.get_vertices_touching_vertex( # noqa: 501
+                                    stab
+                                # fmt: on
+                                )
+                            ]
                         )
                         * 2
                     )
                 elif gate in {"H", "R", "M"}:
-                    assert len(gate_subframe.loc[index]["on_qubits"]) == code.n_stabgens
+                    assert (
+                        len(gate_subframe.loc[index]["on_qubits"])
+                        == code.num_stabilizers
+                    )
 
                 index += 1
 
             elif confs[0] == "gaussian":
                 if gate in {"CX", "CZ"}:
                     num_rows = sum(
-                        [1 for stab in code.lattice.stabgens for edge in stab.edges]
+                        [
+                            1
+                            for stab in code.ancilla_qubit_indices
+                            for _ in code.embedded_graph.get_vertices_touching_vertex(
+                                stab
+                            )
+                        ]
                     )
                     assert np.array_equal(
                         np.full(num_rows, confs[1]),
@@ -282,7 +303,7 @@ def test_assimilate_gate_errors_and_no_csv(gate_error_config: tuple[dict, str], 
                     )
                     index = num_rows + index
                 elif gate in {"H", "R", "M"}:
-                    num_rows = code.n_stabgens
+                    num_rows = code.num_stabilizers
                     assert np.array_equal(
                         np.full(num_rows, confs[1]),
                         [
@@ -307,11 +328,11 @@ class TestErrorDataUI:
     @pt.mark.parametrize(
         "code",
         [
-            LatticeCode.make_rotated_planar(size=3, n_rounds=10),
-            LatticeCode.make_planar(size=3, n_rounds=10),
-            LatticeCode.make_repetition(size=9, n_rounds=3),
-            LatticeCode.make_five_qubit(n_rounds=10),
-            LatticeCode.make_shor(n_rounds=6),
+            Code.make_rotated_planar(distance=3),
+            Code.make_planar(distance=3),
+            Code.make_repetition(distance=9),
+            Code.make_five_qubit(),
+            Code.make_shor(),
         ],
     )
     @pt.mark.parametrize(
@@ -382,12 +403,12 @@ class TestErrorDataUI:
     )
     def test_from_lattice_no_csv(
         self,
-        code: LatticeCode,
+        code: Code,
         gate_error_config: tuple[dict, str],
         qubit_error_config: tuple[dict, str],
     ):
         errs = ErrorData.from_lattice(
-            lattice=code.lattice,
+            code=code,
             qubit_error_config=qubit_error_config,
             gate_error_config=gate_error_config,
         )
@@ -395,15 +416,16 @@ class TestErrorDataUI:
         # assert qubit errors
         df = errs.qubit_errors
         assert np.array_equal(
-            df["qubit_id"], np.arange(code.n_data_qubits + code.n_stabgens)
+            df["qubit_id"], np.arange(code.num_data_qubits + code.num_stabilizers)
         )
         assert np.array_equal(
-            df["qubit_type"], ["data"] * code.n_data_qubits + ["stab"] * code.n_stabgens
+            df["qubit_type"],
+            ["data"] * code.num_data_qubits + ["stabilizer"] * code.num_stabilizers,
         )
         for key, val in qubit_error_config[0].items():
             if val[0] == "constant":
                 assert np.array_equal(
-                    df[key], [val[1]] * (code.n_data_qubits + code.n_stabgens)
+                    df[key], [val[1]] * (code.num_data_qubits + code.num_stabilizers)
                 )
             elif val[0] == "gaussian":
                 assert (val[1] - 3 * val[2]) < np.mean(df[key]) < (val[1] + 3 * val[2])
@@ -423,8 +445,12 @@ class TestErrorDataUI:
                             == sum(
                                 [
                                     1
-                                    for stab in code.lattice.stabgens
-                                    for edge in stab.edges
+                                    for stab in code.ancilla_qubit_indices
+                                    # fmt: off
+                                    for _ in code.embedded_graph.get_vertices_touching_vertex( # noqa: 501
+                                        stab
+                                    # fmt: on
+                                    )
                                 ]
                             )
                             * 2
@@ -432,7 +458,7 @@ class TestErrorDataUI:
                     elif gate in {"H", "R", "M"}:
                         assert (
                             len(gate_subframe.loc[index]["on_qubits"])
-                            == code.n_stabgens
+                            == code.num_stabilizers
                         )
 
                     index += 1
@@ -440,7 +466,15 @@ class TestErrorDataUI:
                 elif confs[0] == "gaussian":
                     if gate in {"CX", "CZ"}:
                         num_rows = sum(
-                            [1 for stab in code.lattice.stabgens for edge in stab.edges]
+                            [
+                                1
+                                for stab in code.ancilla_qubit_indices
+                                # fmt: off
+                                for _ in code.embedded_graph.get_vertices_touching_vertex( # noqa: 501
+                                # fmt: on
+                                    stab
+                                )
+                            ]
                         )
                         assert np.array_equal(
                             np.full(num_rows, confs[1]),
@@ -458,7 +492,7 @@ class TestErrorDataUI:
                         )
                         index = num_rows + index
                     elif gate in {"H", "R", "M"}:
-                        num_rows = code.n_stabgens
+                        num_rows = code.num_stabilizers
                         assert np.array_equal(
                             np.full(num_rows, confs[1]),
                             [
@@ -488,27 +522,29 @@ class TestErrorDataUI:
     @pt.mark.parametrize(
         "code",
         [
-            LatticeCode.make_rotated_planar(size=3, n_rounds=10),
-            LatticeCode.make_planar(size=3, n_rounds=10),
-            LatticeCode.make_repetition(size=9, n_rounds=3),
-            LatticeCode.make_five_qubit(n_rounds=10),
-            LatticeCode.make_shor(n_rounds=6),
+            Code.make_rotated_planar(distance=3),
+            Code.make_planar(distance=3),
+            Code.make_repetition(distance=9),
+            Code.make_five_qubit(),
+            Code.make_shor(),
         ],
     )
     @pt.mark.parametrize("error_name", ["measurement", "erasure"])
     def test_add_qubit_error(self, code, error_name):
         rng = np.random.default_rng()
-        for size in range(
+        for distance in range(
             9
         ):  # stop at 8 cus it is the maximum of ext indices, the 5 qubit code
-            errs = ErrorData.from_lattice(code.lattice)  # make new instance every time
+            errs = ErrorData.from_lattice(code)  # make new instance every time
             qubit_id = rng.choice(
-                range(code.n_data_qubits + code.n_stabgens), size=size, replace=False
+                range(code.num_data_qubits + code.num_stabilizers),
+                size=distance,
+                replace=False,
             )
             zero_qubits = np.setdiff1d(
-                np.arange(code.n_data_qubits + code.n_stabgens), qubit_id
+                np.arange(code.num_data_qubits + code.num_stabilizers), qubit_id
             )
-            probs = rng.random(size=size)
+            probs = rng.random(size=distance)
             errs.add_qubit_error(
                 qubit_id=list(qubit_id), error_name=error_name, probs=probs
             )
@@ -521,11 +557,11 @@ class TestErrorDataUI:
     @pt.mark.parametrize(
         "code",
         [
-            LatticeCode.make_rotated_planar(size=3, n_rounds=10),
-            LatticeCode.make_planar(size=3, n_rounds=10),
-            LatticeCode.make_repetition(size=9, n_rounds=3),
-            LatticeCode.make_five_qubit(n_rounds=10),
-            LatticeCode.make_shor(n_rounds=6),
+            Code.make_rotated_planar(distance=3),
+            Code.make_planar(distance=3),
+            Code.make_repetition(distance=9),
+            Code.make_five_qubit(),
+            Code.make_shor(),
         ],
     )
     @pt.mark.parametrize(
@@ -539,9 +575,9 @@ class TestErrorDataUI:
     )
     def test_add_qubit_error_fail(self, code, error_name, err_msg):
         rng = np.random.default_rng()
-        errs = ErrorData.from_lattice(code.lattice)  # make new instance every time
+        errs = ErrorData.from_lattice(code)  # make new instance every time
         qubit_id = rng.choice(
-            range(code.n_data_qubits + code.n_stabgens), size=3, replace=False
+            range(code.num_data_qubits + code.num_stabilizers), size=3, replace=False
         )
         probs = rng.random(size=3)
         with pt.raises(ValueError) as exc_info:
@@ -553,11 +589,11 @@ class TestErrorDataUI:
     @pt.mark.parametrize(
         "code",
         [
-            LatticeCode.make_rotated_planar(size=3, n_rounds=10),
-            LatticeCode.make_planar(size=3, n_rounds=10),
-            LatticeCode.make_repetition(size=9, n_rounds=3),
-            LatticeCode.make_five_qubit(n_rounds=10),
-            LatticeCode.make_shor(n_rounds=6),
+            Code.make_rotated_planar(distance=3),
+            Code.make_planar(distance=3),
+            Code.make_repetition(distance=9),
+            Code.make_five_qubit(),
+            Code.make_shor(),
         ],
     )
     @pt.mark.parametrize("error_name", ["X", "Y", "Z"])
@@ -566,12 +602,14 @@ class TestErrorDataUI:
         for size in range(
             9
         ):  # stop at 8 cus it is the maximum of ext indices, the 5 qubit code
-            errs = ErrorData.from_lattice(code.lattice)  # make new instance every time
+            errs = ErrorData.from_lattice(code)  # make new instance every time
             qubit_id = rng.choice(
-                range(code.n_data_qubits + code.n_stabgens), size=size, replace=False
+                range(code.num_data_qubits + code.num_stabilizers),
+                size=size,
+                replace=False,
             )
             other_qubits = np.setdiff1d(
-                np.arange(code.n_data_qubits + code.n_stabgens), qubit_id
+                np.arange(code.num_data_qubits + code.num_stabilizers), qubit_id
             )
             probs = rng.random(size=size)
             errs.update_qubit_error(
@@ -587,11 +625,11 @@ class TestErrorDataUI:
     @pt.mark.parametrize(
         "code",
         [
-            LatticeCode.make_rotated_planar(size=3, n_rounds=10),
-            LatticeCode.make_planar(size=3, n_rounds=10),
-            LatticeCode.make_repetition(size=9, n_rounds=3),
-            LatticeCode.make_five_qubit(n_rounds=10),
-            LatticeCode.make_shor(n_rounds=6),
+            Code.make_rotated_planar(distance=3),
+            Code.make_planar(distance=3),
+            Code.make_repetition(distance=9),
+            Code.make_five_qubit(),
+            Code.make_shor(),
         ],
     )
     @pt.mark.parametrize(
@@ -616,9 +654,9 @@ class TestErrorDataUI:
         self, code, error_name, err_type, err_msg
     ):
         rng = np.random.default_rng()
-        errs = ErrorData.from_lattice(code.lattice)  # make new instance every time
+        errs = ErrorData.from_lattice(code)  # make new instance every time
         qubit_id = rng.choice(
-            range(code.n_data_qubits + code.n_stabgens), size=3, replace=False
+            range(code.num_data_qubits + code.num_stabilizers), size=3, replace=False
         )
         probs = rng.random(size=3)
         with pt.raises(err_type) as exc_info:
@@ -630,11 +668,11 @@ class TestErrorDataUI:
     @pt.mark.parametrize(
         "code",
         [
-            LatticeCode.make_rotated_planar(size=3, n_rounds=10),
-            LatticeCode.make_planar(size=3, n_rounds=10),
-            LatticeCode.make_repetition(size=9, n_rounds=3),
-            LatticeCode.make_five_qubit(n_rounds=10),
-            LatticeCode.make_shor(n_rounds=6),
+            Code.make_rotated_planar(distance=3),
+            Code.make_planar(distance=3),
+            Code.make_repetition(distance=9),
+            Code.make_five_qubit(),
+            Code.make_shor(),
         ],
     )
     @pt.mark.parametrize("error_name", ["X", "Y", "Z"])
@@ -644,7 +682,7 @@ class TestErrorDataUI:
         self, code, error_name, qubit_id, probs
     ):
         np.random.default_rng()
-        errs = ErrorData.from_lattice(code.lattice)  # make new instance every time
+        errs = ErrorData.from_lattice(code)  # make new instance every time
         with pt.raises(ValueError) as exc_info:
             errs.update_qubit_error(
                 qubit_id=list(qubit_id), error_name=error_name, probs=probs

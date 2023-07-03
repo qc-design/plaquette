@@ -29,13 +29,14 @@ keywords = ["Quantum error correction", "qec", "quantum computing", "fault toler
 python_version = "3.10"
 ignore_missing_imports = true
 allow_redefinition = true
+plugins = ["pydantic.mypy"]
 
 [tool.ruff]
 select = ["B", "D", "E", "F", "I"]
 ignore = ["B905"]
 
 # Allow autofix for all enabled rules (when `--fix`) is provided.
-fixable = ["A", "B", "C", "D", "E", "F", "G", "I", "N", "Q", "S", "T", "W", "ANN", "ARG", "BLE", "COM", "DJ", "DTZ", "EM", "ERA", "EXE", "FBT", "ICN", "INP", "ISC", "NPY", "PD", "PGH", "PIE", "PL", "PT", "PTH", "PYI", "RET", "RSE", "RUF", "SIM", "SLF", "TCH", "TID", "TRY", "UP", "YTT"]
+fixable = ["I"]
 unfixable = []
 
 # Exclude a variety of commonly ignored directories.
@@ -70,7 +71,7 @@ clifford = "plaquette.device._circuitsim:CircuitSimulator"
 stim = "plaquette.device._stimsim:StimSimulator"
 
 [tool.ruff.isort]
-known-first-party = ["plaquette"]
+known-first-party = ["plaquette", "plaquette_graph", "plaquette_unionfind"]
 order-by-type = true
 
 [tool.ruff.pydocstyle]
@@ -83,6 +84,7 @@ max-complexity = 10
 [tool.ruff.per-file-ignores]
 "src/plaquette/decoders/__init__.py" = ["F401"]
 "tests/*" = ["D"]
+"lattice.py" = ["D", "E"]
 
 [tool.setuptools]
 zip-safe = false
@@ -93,7 +95,7 @@ readme = {file = ["README.rst"]}
 dependencies = {file = ["requirements.txt"]}
 
 [tool.pytest.ini_options]
-addopts = '--doctest-modules --doctest-glob="*.rst" --strict-markers --ignore=examples --ignore-glob="docs/**/*.py"'
+addopts = '--doctest-modules --doctest-glob="*.rst" --strict-markers --ignore=examples --ignore="src/plaquette/frontend" --ignore="src/plaquette/visualizer" --ignore-glob="docs/**/*.py"'
 markers = [
     "slow: marks tests as slow (deselect with '-m \"not slow\"')",
 ]

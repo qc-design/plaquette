@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 import pytest as pt
 
-from plaquette.codes import LatticeCode
+from plaquette.codes import Code
 from plaquette.frontend import (
     CircuitConfig,
     CodeConfig,
@@ -116,45 +116,45 @@ class TestCodeConfig:
         [
             (
                 CodeConfig(name="FiveQubitCode", rounds=1),
-                LatticeCode.make_five_qubit(n_rounds=1),
+                Code.make_five_qubit(),
             ),
-            (CodeConfig(name="ShorCode", rounds=2), LatticeCode.make_shor(n_rounds=2)),
+            (CodeConfig(name="ShorCode", rounds=2), Code.make_shor()),
             (
                 CodeConfig(name="RepetitionCode", size=3, rounds=3),
-                LatticeCode.make_repetition(size=3, n_rounds=3),
+                Code.make_repetition(3),
             ),
             (
                 CodeConfig(name="RepetitionCode", size=9, rounds=1),
-                LatticeCode.make_repetition(size=9, n_rounds=1),
+                Code.make_repetition(9),
             ),
             (
-                CodeConfig(name="RotatedPlanarCode", size=3, rounds=4),
-                LatticeCode.make_rotated_planar(size=3, n_rounds=4),
+                CodeConfig(name="RotatedPlanarCode", size=3),
+                Code.make_rotated_planar(3),
             ),
             (
-                CodeConfig(name="RotatedPlanarCode", size=17, rounds=1),
-                LatticeCode.make_rotated_planar(size=17, n_rounds=1),
+                CodeConfig(name="RotatedPlanarCode", size=17),
+                Code.make_rotated_planar(17),
             ),
             (
                 CodeConfig(name="PlanarCode", size=5, rounds=10),
-                LatticeCode.make_planar(size=5, n_rounds=10),
+                Code.make_planar(5),
             ),
             (
                 CodeConfig(name="PlanarCode", size=11, rounds=10),
-                LatticeCode.make_planar(size=11, n_rounds=10),
+                Code.make_planar(11),
             ),
         ],
     )
-    def test_instantiate(self, input_conf: CodeConfig, output_obj: LatticeCode):
+    def test_instantiate(self, input_conf: CodeConfig, output_obj: Code):
         assert input_conf.instantiate() == output_obj
 
     @pt.mark.parametrize(
         "init_object, kwargs, expected",
         [
             (
-                CodeConfig(name="FiveQubitCode", rounds=1),
+                CodeConfig(name="FiveQubitCode"),
                 {"rounds": 10},
-                CodeConfig(name="FiveQubitCode", rounds=10),
+                CodeConfig(name="FiveQubitCode"),
             ),
             (
                 CodeConfig(name="ShorCode", rounds=2),
@@ -188,7 +188,7 @@ class TestCodeConfig:
             ),
             # (
             #     CodeConfig(name="PlanarCode", size=11, rounds=10),
-            #     LatticeCode.make_planar(size=11, n_rounds=10),
+            #     Code.make_planar(size=11, n_rounds=10),
             # ),
         ],
     )
@@ -1011,32 +1011,32 @@ class TestExperimentConfig:
         [
             (
                 CodeConfig(name="FiveQubitCode", rounds=1),
-                LatticeCode.make_five_qubit(n_rounds=1),
+                Code.make_five_qubit(),
             ),
-            (CodeConfig(name="ShorCode", rounds=2), LatticeCode.make_shor(n_rounds=2)),
+            (CodeConfig(name="ShorCode", rounds=2), Code.make_shor()),
             (
                 CodeConfig(name="RepetitionCode", size=3, rounds=3),
-                LatticeCode.make_repetition(size=3, n_rounds=3),
+                Code.make_repetition(3),
             ),
             (
                 CodeConfig(name="RepetitionCode", size=9, rounds=1),
-                LatticeCode.make_repetition(size=9, n_rounds=1),
+                Code.make_repetition(9),
             ),
             (
                 CodeConfig(name="RotatedPlanarCode", size=3, rounds=4),
-                LatticeCode.make_rotated_planar(size=3, n_rounds=4),
+                Code.make_rotated_planar(3),
             ),
             (
                 CodeConfig(name="RotatedPlanarCode", size=17, rounds=1),
-                LatticeCode.make_rotated_planar(size=17, n_rounds=1),
+                Code.make_rotated_planar(17),
             ),
             (
                 CodeConfig(name="PlanarCode", size=5, rounds=10),
-                LatticeCode.make_planar(size=5, n_rounds=10),
+                Code.make_planar(5),
             ),
             (
                 CodeConfig(name="PlanarCode", size=11, rounds=10),
-                LatticeCode.make_planar(size=11, n_rounds=10),
+                Code.make_planar(11),
             ),
         ],
     )

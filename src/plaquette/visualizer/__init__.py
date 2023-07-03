@@ -4,18 +4,18 @@
 
 When working with a stabilizer code, it can be useful to work with a graphical
 representation of the whole code, which describes both data qubits and stabilizer
-generators. Such a graphical representation can be obtained as follows::
+generators. Such a graphical representation can be obtained as follows:
 
-    from plaquette import codes, visualizer
-
-    code = codes.LatticeCode.make_planar(n_rounds=1, size=3)
-    vis = visualizer.LatticeVisualizer(code)
-    vis.draw_lattice()
+>>> from plaquette import codes, visualizer
+>>> code = codes.Code.make_planar(size=3)
+>>> vis = visualizer.Visualizer(code)
+>>> vis.draw_lattice()
+Figure({...
 
 The section :ref:`codes-guide` contains many examples of code visualizations.
 
 If you also want to draw errors, syndrome data ond/or corrections, refer to
-:meth:`LatticeVisualizer.draw_latticedata` or :ref:`viz-guide`. Using such a
+:meth:`Visualizer.draw_latticedata` or :ref:`viz-guide`. Using such a
 drawing, you can explore the relation between individual errors and triggered
 syndrome bits as well as determine why a given correction succeeded or failed.
 
@@ -31,8 +31,6 @@ circuit into a ``matplotlib`` figure.
     quantum circuit symbols. This means that **circuits containing error
     instructions cannot be rendered**.
 """
-from __future__ import annotations
-
 from collections.abc import Sequence
 from typing import Any, Optional, cast
 
@@ -44,98 +42,110 @@ import plotly.graph_objects as go  # type: ignore
 import qiskit
 from qiskit import qasm3
 
-from plaquette import circuit, codes
+from plaquette import circuit, codes, errors
 from plaquette.circuit import openqasm
-from plaquette.codes import latticebase
 from plaquette.pauli import Tableau, unpack_tableau
 
 #: Optional Matplotlib subplot axes
 OptSubAx = Optional[mpl.axes.Subplot]
 
 
-class LatticeVisualizer:
-    """Create figures related to :class:`plaquette.codes.LatticeCode`.
+class Visualizer:
+    """Create figures related to :class:`plaquette.codes.Code`.
 
     .. automethod:: __init__
     """
 
-    #: An error correction code defined using a lattice.
-    #:
-    #: We use the lattice coordinates for creating figures.
-    code: latticebase.CodeLattice
-    #: Qubit error probabilities
-    qubit_error_probs: Optional[np.ndarray]
-
     def __init__(
         self,
-        code: codes.LatticeCode | latticebase.CodeLattice,
-        qubit_error_probs: Optional[np.ndarray] = None,
+        code: codes.Code,
+        error_data: Optional[errors.ErrorDataDict] = None,
     ):
         """Create a visualizer.
 
         Args:
-            code: The code
-            qubit_error_probs:
-                Error probabilities (optional). One entry for each physical data qubit.
+            code: code to be visualized. Each node in the underlying graph needs to be
+                equipped with coordinates, or the visualizer will not work.
+            error_data: error data associated with the various qubits.
         """
-        the_code = code if isinstance(code, latticebase.CodeLattice) else code.lattice
         #: The error correction code on a lattice
-        self.code = the_code
-        self.qubit_error_probs = qubit_error_probs
-        if not len(the_code.lattice.shape) == 2:
-            raise ValueError("Can only plot two-dimensional code lattices")
-        if self.qubit_error_probs is not None:
-            if len(self.qubit_error_probs) != len(the_code.dataqubits):
-                raise ValueError("q_error_probs array has incorrect length")
+        self.code = code
+        self.error_data = error_data
 
     def _mk_df(
-        self, syndrome: Optional[np.ndarray] = None
+        self, syndrome: Optional[set[int]] = None
     ) -> tuple[pd.DataFrame, pd.DataFrame]:
         """Create DataFrame used for creating plots."""
-        if syndrome is not None:
-            assert syndrome.shape == (len(self.code.stabgens),)
+        if syndrome is not None and np.any(
+            np.array(tuple(syndrome)) >= self.code.num_qubits
+        ):
+            raise NotImplementedError("multi-round syndromes are unsupported.")
         v_items = []
         i = 0
-        for v in self.code.vertices:
-            item: dict[str, Any] = dict(x=v.pos[0], y=v.pos[1], hovertext=None)
+        for vert_idx, vert_data in enumerate(self.code.tanner_graph.nodes_data):
+            assert vert_data is not None
+            if vert_data.coords is None:
+                raise ValueError(f"vertex {vert_idx} has no coordinates")
+            item: dict[str, Any] = dict(
+                x=vert_data.coords[0], y=vert_data.coords[1], hovertext=None
+            )
             # TODO HTML escape things passed to plotly, such as v.group.name
-            if isinstance(v, latticebase.DataVertex):
-                item["type"] = "data"
-                item["type_group"] = "data"
-                if self.qubit_error_probs is not None:
-                    item["hovertext"] = (
-                        f"Data qubit {v.dataqubit_idx}<br />Ext. qubit {v.equbit_idx}"
-                        f"<br />p = {self.qubit_error_probs[i]}"
-                    )
-                else:
-                    item[
-                        "hovertext"
-                    ] = f"Data qubit {v.dataqubit_idx}<br />Ext. qubit {v.equbit_idx}"
-                i += 1
-            elif isinstance(v, latticebase.StabGenVertex):
-                item["type"] = "stab"
-                item["type_group"] = f"stab_{v.group.name}"
-                item[
-                    "hovertext"
-                ] = f"Stabgen {v.stabgen_idx}<br />Ext. qubit {v.equbit_idx}"
-                if syndrome is not None and syndrome[v.stabgen_idx]:
-                    item["hovertext"] += "<br /><b>Syndrome set</b>"
-                    item["type_group"] += "_toggled"
-            elif isinstance(v, latticebase.LogicalVertex):
-                item["type"] = "log"
-                item["type_group"] = "log"
-                item["hovertext"] = (
-                    f"{v.name}<br />Logical {v.logical_idx}"
-                    f"<br />Ext. qubit {v.equbit_idx}"
-                )
-            else:
-                raise TypeError(f"Handling {type(v)} not implemented")
+            match vert_data.type:
+                case codes.QubitType.data:
+                    item["type"] = "data"
+                    item["type_group"] = "data"
+                    if self.error_data is not None:
+                        item["hovertext"] = (
+                            f"Data qubit {vert_idx}"
+                            f"<br />p = {self.error_data['pauli']}"
+                        )
+                    else:
+                        item["hovertext"] = f"Data qubit {vert_idx}"
+                    i += 1
+                case codes.QubitType.stabilizer:
+                    item["type"] = "stab"
+                    # FIXME: this will break with flags and more complicated cases
+                    # heuristically figure out what "type" of stabiliser we have
+                    # We assume we have only one type of pauli factor in each stabiliser
+                    # right now
+                    unique_factors = {
+                        self.code.tanner_graph.edges_data[edge].type
+                        for edge in self.code.tanner_graph.get_edges_touching_vertex(
+                            vert_idx
+                        )
+                    }
+                    # A set does not have duplicates, so if there was only on factor in
+                    # the stabiliser defined by the ancilla edges, we are done
+                    if len(unique_factors) != 1:
+                        raise NotImplementedError(
+                            "visualizer cannot currently deal with stabilizers with "
+                            "mixed Pauli factors."
+                        )
+                    factor = unique_factors.pop()
+                    item["type_group"] = f"stab_{factor.name}"
+                    item["hovertext"] = f"Ancilla {vert_idx}"
+                    if syndrome is not None and vert_idx in syndrome:
+                        item["hovertext"] += "<br /><b>Syndrome set</b>"
+                        item["type_group"] += "_toggled"
+                # TODO: handle logical qubits
+                case _:
+                    raise TypeError(f"Handling {vert_data.type} not implemented")
             v_items.append(item)
         e_items = []
-        for e in self.code.edges:
-            e_items.append(dict(op=e.factor.name, x=e.op.pos[0], y=e.op.pos[1]))
-            e_items.append(dict(op=e.factor.name, x=e.data.pos[0], y=e.data.pos[1]))
-            e_items.append(dict(op=e.factor.name, x=np.nan, y=np.nan))
+        for edge_idx, edge_data in enumerate(self.code.tanner_graph.edges_data):
+            assert edge_data is not None
+            a, b = self.code.tanner_graph.get_vertices_connected_by_edge(edge_idx)
+            a_data = self.code.tanner_graph.nodes_data[a]
+            b_data = self.code.tanner_graph.nodes_data[b]
+            e_items.append(
+                dict(op=edge_data.type.name, x=a_data.coords[0], y=a_data.coords[1])
+            )
+            e_items.append(
+                dict(op=edge_data.type.name, x=b_data.coords[0], y=b_data.coords[1])
+            )
+            e_items.append(
+                dict(op=edge_data.type.name, x=np.nan, y=np.nan)
+            )  # magical thing that needs to stay
         v_df = (
             pd.DataFrame(v_items)
             if v_items
@@ -181,13 +191,15 @@ class LatticeVisualizer:
                 assert pauli in ("X", "Z")
                 if only_pauli and pauli != only_pauli:
                     continue
-                q = self.code.dataqubits[pos]
+                q = self.code.tanner_graph.nodes_data[pos]
+                assert q is not None
+                assert q.coords is not None
                 item: dict[str, Any] = dict()
                 item["type"] = kind
                 item["type_group"] = f"{kind}_{pauli}"
                 off = self._frame_offsets[item["type_group"]]
-                item["x"] = q.pos[0] + off[0]
-                item["y"] = q.pos[1] + off[1]
+                item["x"] = q.coords[0] + off[0]
+                item["y"] = q.coords[1] + off[1]
                 item["hovertext"] = f"Data qubit {pos}"
                 items.append(item)
         return pd.DataFrame(items)
@@ -200,20 +212,20 @@ class LatticeVisualizer:
         "stab_U": dict(
             name="Stabilizer", marker=dict(color="midnightblue", symbol="x", size=10)
         ),
-        "stab_A": dict(
+        "stab_X": dict(
             name="A stabilizer", marker=dict(color="midnightblue", symbol="x", size=10)
         ),
-        "stab_B": dict(
+        "stab_Z": dict(
             name="B stabilizer", marker=dict(color="green", symbol="cross", size=10)
         ),
         "stab_U_toggled": dict(
             name="Toggled stabilizer", marker=dict(color="hotpink", symbol="x", size=13)
         ),
-        "stab_A_toggled": dict(
+        "stab_X_toggled": dict(
             name="Toggled A stabilizer",
             marker=dict(color="deepskyblue", symbol="x", size=10),
         ),
-        "stab_B_toggled": dict(
+        "stab_Z_toggled": dict(
             name="Toggled B stabilizer",
             marker=dict(color="fuchsia", symbol="cross", size=10),
         ),
@@ -294,7 +306,7 @@ class LatticeVisualizer:
         fig.update_layout(coloraxis_colorbar_x=-0.1)
         for key, gr in vdf.groupby("type_group"):
             # Could supply hovertext=["a", "b", ...] here.
-            if key == "data" and self.qubit_error_probs is not None:
+            if key == "data" and self.error_data is not None:
                 fig.add_trace(
                     go.Scatter(
                         x=gr["x"],
@@ -303,7 +315,7 @@ class LatticeVisualizer:
                         name="Data qubit",
                         marker=dict(
                             colorscale="Viridis",
-                            color=self.qubit_error_probs,
+                            color=self.error_data,
                             symbol="circle",
                             size=15,
                             colorbar=dict(thickness=20, title="Error Probs.", x=-0.2),
@@ -442,8 +454,8 @@ class LatticeVisualizer:
         if ax is None:
             ax = plt.axes()
         ax.set(
-            xlim=[-1, 1.4 * self.code.lattice.shape[0]],
-            ylim=[-1, self.code.lattice.shape[1]],
+            xlim=[-1, 1.4 * self.code.distance],
+            ylim=[-1, self.code.distance],
         )
         return ax
 

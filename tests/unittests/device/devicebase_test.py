@@ -1,5 +1,4 @@
-# Copyright 2023, QC Design GmbH and the plaquette contributors
-# SPDX-License-Identifier: Apache-2.0
+# Copyright 2023, QC Design GmbH. All rights reserved
 """Unit-tests for plaquette's Device."""
 
 import numpy as np
@@ -10,7 +9,7 @@ import plaquette
 from plaquette import Device
 from plaquette.circuit import Circuit
 from plaquette.circuit.generator import generate_qec_circuit
-from plaquette.codes import LatticeCode
+from plaquette.codes import Code
 from plaquette.errors import QubitErrorsDict
 
 
@@ -126,14 +125,14 @@ class TestDeviceBaseClifford:
     def test_reset(self):
         """Test resetting."""
         dev = Device("clifford")
-        code = LatticeCode.make_planar(n_rounds=1, size=4)
+        code = Code.make_planar(distance=4)
 
         qed: QubitErrorsDict = {
             "pauli": {
                 q: {"x": 0.05, "y": 1e-15, "z": 1e-15}
-                for q in range(len(code.lattice.dataqubits))
+                for q in range(code.num_data_qubits)
             },
-            "erasure": {q: {"p": 0.01} for q in range(len(code.lattice.dataqubits))},
+            "erasure": {q: {"p": 0.01} for q in range(code.num_data_qubits)},
         }
         logical_operator = "Z"
         circuit = generate_qec_circuit(code, qed, {}, logical_operator)

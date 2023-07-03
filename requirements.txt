@@ -12,7 +12,9 @@ qiskit_qasm3_import
 pylatexenc
 plaquette_graph
 plaquette_unionfind
+pydantic
 seaborn>=0.12.1
 stim>=1.10.0
 toml>=0.10
 tqdm
+rustworkx

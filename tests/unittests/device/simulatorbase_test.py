@@ -224,7 +224,7 @@ class TestQuantumState:
     """Tests related to the QuantumState object."""
 
     def test_string_representation(self):
-        """Make sure that turning a state into a string of stabilisers works."""
+        """Make sure that turning a state into a string of stabilizers works."""
         state = QuantumState(10)
         state.x(1)
         assert str(state).split("\n")[state.n_q + 2].startswith("-IZ")

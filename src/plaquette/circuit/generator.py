@@ -7,15 +7,13 @@ from __future__ import annotations
 from collections.abc import Sequence
 from typing import Optional, cast
 
-from plaquette import circuit, codes
-from plaquette.codes import latticebase as lattice
+from plaquette import circuit, codes, pauli
 from plaquette.errors import (
     ErrorData,
     ErrorDataDict,
     GateErrorsDict,
     QubitErrorsDict,
 )
-from plaquette.pauli import commutator_sign
 
 # TODO: The code here is closer in functionality and concept to simulator._circuitsim
 
@@ -28,41 +26,25 @@ class QECCircuitGenerator:
     and the logical operators of interest (see :mod:`plaquette.codes` and
     :mod:`plaquette.errors`):
 
-    >>> from plaquette.codes import LatticeCode
-    >>> gen = QECCircuitGenerator(LatticeCode.make_planar(1, 4), {}, {})
+    >>> from plaquette import codes
+    >>> gen = QECCircuitGenerator(codes.Code.make_planar(4), {}, {}, 1)
     >>> circ = gen.get_circuit("X")
 
     The above is equivalent to:
 
     .. code-block:: python
 
-        circ = generate_qec_circuit(code, {}, {}, "X")
+        circ = generate_qec_circuit(code, {}, {}, "X", 1)
 
     See :func:`generate_qec_circuit` for a complete minimal example.
-
-    .. todo::
-
-       The circuit error model depends on both the code lattice and the
-       stabilizer code. Using only the stabilizer code would be sufficient, but
-       using the code lattice in addition is a bit more convenient for the
-       implementation. In addition, it enables relating qubit numbers to
-       drawings (plots). I am not sure whether we should change something here.
     """
 
     #: QEC code which should be implemented
-    code: codes.LatticeCode
+    code: codes.Code
     #: Qubit errors data
     qubit_errors: QubitErrorsDict
     #: Gate error data
     gate_errors: GateErrorsDict
-    #: Code lattice (from :attr:`code`)
-    lat: lattice.CodeLattice
-    #: Stabilizer code (from :attr:`code`)
-    stabcode: codes.StabilizerCode
-    #: Number of "extended" qubits (data + ancilla) from code lattice
-    n_equbits: int
-    #: Number of logical qubits (from stabilizer code)
-    n_lqubits: int
 
     #: List of names of supported errors
     supported_errors: tuple[str | tuple[str, str], ...] = (
@@ -82,10 +64,10 @@ class QECCircuitGenerator:
 
     def __init__(
         self,
-        code: codes.LatticeCode,
+        code: codes.Code,
         qubit_errordata: QubitErrorsDict,
         gate_errordata: GateErrorsDict,
-        logical_ancilla: bool = False,
+        n_rounds: int = 1,
     ):
         """Create a new circuit generator.
 
@@ -93,8 +75,7 @@ class QECCircuitGenerator:
             code: The code
             qubit_errordata: Information about qubit errors
             gate_errordata: Information about gate errors
-            logical_ancilla: Flag for alternative method to measure logical operators
-                via additional ancilla that is entangled with several physical qubits
+            n_rounds: number of measurement rounds
         """
         if not set(qubit_errordata.keys()).issubset(QubitErrorsDict.__optional_keys__):
             raise KeyError("There is an invalid key in the qubit errors dictionary.")
@@ -111,13 +92,13 @@ class QECCircuitGenerator:
         for key in GateErrorsDict.__optional_keys__:
             self.gate_errors.setdefault(key, {})  # type: ignore
 
-        self.lat = self.code.lattice
-        self.stabcode = self.code
-        self.n_equbits = len(self.lat.equbits)
-        self.n_lqubits = self.stabcode.n_logical_qubits
-        self.logical_ancilla = logical_ancilla
+        if n_rounds < 1:
+            raise ValueError(
+                "at least one round of measurement is always necessary, "
+                f"can't be {n_rounds}"
+            )
+        self.n_rounds = n_rounds
         # Process errordata
-
         ErrorData().check_against_code(
             self.code,
             cast(ErrorDataDict, self.qubit_errors)
@@ -127,24 +108,28 @@ class QECCircuitGenerator:
 
     def apply_dataqubit_errors(self):
         """Apply errors to data qubits."""
-        for v in self.lat.dataqubits:
-            p = self.qubit_errors["pauli"].get(v.equbit_idx, None)
+        for v in range(self.code.num_data_qubits):
+            p = self.qubit_errors["pauli"].get(v, None)
             if p:
                 self.cb.e_pauli(
                     p.get("x", 0.0),
                     p.get("y", 0.0),
                     p.get("z", 0.0),
-                    v.equbit_idx,
+                    v,
                 )
-            p = self.qubit_errors["erasure"].get(v.equbit_idx, None)
+            p = self.qubit_errors["erasure"].get(v, None)
             if p:
-                self.cb.e_erase(p.get("p", 0.0), v.equbit_idx)
+                self.cb.e_erase(p.get("p", 0.0), v)
 
-    def apply_measurement_error(self, op: lattice.OpVertex):
-        """Apply measurement error to ancilla qubit of given operator."""
-        params = self.qubit_errors["measurement"].get(op.equbit_idx, None)
+    def apply_measurement_error(self, op: int):
+        """Apply measurement error to ancilla qubit of given operator.
+
+        Args:
+            op: ancilla vertex index.
+        """
+        params = self.qubit_errors["measurement"].get(op, None)
         if params:
-            self.cb.error(params["p"], "X", op.equbit_idx)
+            self.cb.error(params["p"], "X", op)
 
     def apply_gate_and_error(
         self, gate: str, ancilla: int, dataqubit: Optional[int], with_errors: bool
@@ -209,33 +194,46 @@ class QECCircuitGenerator:
             err = err_gate.get(ancilla, None)
         return err
 
-    def measure_op(self, op: lattice.OpVertex, with_errors: bool = True):
-        """Measure an operator defined on the code lattice.
+    def measure_op(self, ancilla: int, with_errors: bool = True):
+        """Measure an operator defined on the code.
+
+        .. see-also:: :meth:`measure_stabgens` for the order in which gates
+            are laid out for a given operator.
 
         Args:
-            op: operator object that is to be measured
+            ancilla: index of the ancilla qubit that needs to be measured, which
+                indirectly selects the operator to measure.
             with_errors: toggle to indicate if gate errors are to be applied
         """
-        ancilla = op.equbit_idx
         self.apply_gate_and_error("R", ancilla, None, with_errors)
         self.apply_gate_and_error("H", ancilla, None, with_errors)
-        for edge in op.edges:
-            match edge.factor:
-                case lattice.Pauli.X:
-                    self.apply_gate_and_error(
-                        "CX", ancilla, edge.data.equbit_idx, with_errors
-                    )
-                case lattice.Pauli.Y:
+
+        # Sort the edges, and the respective gates to be applied, according to
+        # the index of the data qubit involved, in ascending order.
+        # This looks convoluted, suggestions welcome
+        edges: dict[int, pauli.Factor] = dict()
+        # get all edges touching an ancilla
+        for edge in self.code.tanner_graph.get_edges_touching_vertex(ancilla):
+            # get the ancilla neighbours from the given edge
+            a, b = self.code.tanner_graph.get_vertices_connected_by_edge(edge)
+            # and extract the data qubit index and factor
+            edge_data = self.code.tanner_graph.edges_data[edge]
+            assert edge_data is not None
+            edges[a if a in self.code.data_qubit_indices else b] = edge_data.type
+        # now get a list of pauli factors, sorted according to data qubit index
+        for data_idx in sorted(edges):
+            match edges[data_idx]:
+                case pauli.Factor.X:
+                    self.apply_gate_and_error("CX", ancilla, data_idx, with_errors)
+                case pauli.Factor.Y:
                     raise ValueError("Pauli Y not implemented yet")
-                case lattice.Pauli.Z:
-                    self.apply_gate_and_error(
-                        "CZ", ancilla, edge.data.equbit_idx, with_errors
-                    )
+                case pauli.Factor.Z:
+                    self.apply_gate_and_error("CZ", ancilla, data_idx, with_errors)
                 case _:
                     raise AssertionError("Case not handled")
         self.apply_gate_and_error("H", ancilla, None, with_errors)
         if with_errors:
-            self.apply_measurement_error(op)
+            self.apply_measurement_error(ancilla)
         self.apply_gate_and_error("M", ancilla, None, with_errors)
 
     def measure_logical_ops(self, logop_indices: Sequence[int]):
@@ -244,52 +242,53 @@ class QECCircuitGenerator:
         Args:
             logop_indices:
                 Specifies which logical operators should be measured. See
-                :meth:`plaquette.codes.StabilizerCode.logical_ops_to_indices` for
+                :attr:`plaquette.new_codes_outline.Code.logical_ops` for
                 details.
+
+        Notes:
+            Logical operators do not use an ancilla, as such would assume
+            creating a separate "global" ancilla not constrained to
+            nearest-neighbours interactions. In this case, each physical
+            qubit is individually measured instead.
         """
         for i in logop_indices:
-            op = self.lat.logical_ops[i]
-
-            if not self.logical_ancilla:
-                for edge in op.edges:
-                    dataqubit = edge.data.equbit_idx
-                    match edge.factor:
-                        case lattice.Pauli.Z:
-                            self.apply_gate_and_error(
-                                "M", dataqubit, None, with_errors=False
-                            )
-                        case lattice.Pauli.X:
-                            # Apply Hadamard gate before and after the measurement
-                            # because the "M" operator measures in the Z-basis.
-                            self.apply_gate_and_error(
-                                "H", dataqubit, None, with_errors=False
-                            )
-                            self.apply_gate_and_error(
-                                "M", dataqubit, None, with_errors=False
-                            )
-                            self.apply_gate_and_error(
-                                "H", dataqubit, None, with_errors=False
-                            )
-                        case lattice.Pauli.Y:
-                            raise ValueError("Pauli Y not implemented yet")
-            else:
-                self.measure_op(op, with_errors=False)
+            # Logical operators have no "edges" to anything, we need to measure
+            # each individual data qubit.
+            op = pauli.pauli_to_dict(self.code.logical_ops[i])
+            for qubit, factor in op.items():
+                match factor:
+                    case codes.Factor.Z:
+                        self.apply_gate_and_error("M", qubit, None, with_errors=False)
+                    case pauli.Factor.X:
+                        # Apply Hadamard gate before and after the measurement
+                        # because the "M" operator measures in the Z-basis.
+                        self.apply_gate_and_error("H", qubit, None, with_errors=False)
+                        self.apply_gate_and_error("M", qubit, None, with_errors=False)
+                        self.apply_gate_and_error("H", qubit, None, with_errors=False)
+                    case pauli.Factor.Y:
+                        raise ValueError("Pauli Y not implemented yet")
 
     def measure_stabgens(self, with_errors: bool):
-        """Measure all stabilizer generators sequentially or in parallel.
+        """Measure all stabilizer generators.
 
         Args:
             with_errors:
                 If ``False``, no error gates are added. (State preparation and
                 verification are currently performed without errors.)
-        """
-        time_steps = self.lat.n_time_steps
-        if isinstance(time_steps, int):
-            self.measure_stabgens_pl(with_errors=with_errors)
-        else:
-            self.measure_stabgens_seq(with_errors=with_errors)
 
-    def measure_stabgens_seq(self, with_errors: bool):
+        Notes:
+            The order in which the single data qubits are entangled with the
+            corresponding ancilla depends on how the data qubits are indexed
+            in the code.
+
+            Specifically, the circuit generator will entangle each data qubit
+            starting from the one with the lowest index, and continuing in
+            ascending order.
+        """
+        # TODO: add logic to measure qubits in "parallel"
+        self._measure_stabgens_seq(with_errors=with_errors)
+
+    def _measure_stabgens_seq(self, with_errors: bool):
         """Measure all stabilizer generators sequentially.
 
         Args:
@@ -297,78 +296,82 @@ class QECCircuitGenerator:
                 If ``False``, no error gates are added. (State preparation and
                 verification are currently performed without errors.)
         """
-        for op in self.lat.stabgens:
-            self.measure_op(op, with_errors=with_errors)
+        for ancilla in self.code.ancilla_qubit_indices:
+            self.measure_op(ancilla, with_errors=with_errors)
 
-    def measure_stabgens_pl(self, with_errors: bool):
-        """Measure all stabilizer generators in parallel.
+    # fmt: off
+    # TODO: this needs to be reworked once a way to schedule measurements is finalised
+    # def _measure_stabgens_pl(self, with_errors: bool):
+    #     """Measure all stabilizer generators in parallel.
+    #
+    #     Args:
+    #         with_errors:
+    #             If ``False``, no error gates are added. (State preparation and
+    #             verification are currently performed without errors.)
+    #     """
+    #     for op in self.lat.stabgens:
+    #         ancilla = op.equbit_idx
+    #         self.apply_gate_and_error("R", ancilla, None, with_errors)
+    #         self.apply_gate_and_error("H", ancilla, None, with_errors)
+    #     assert isinstance(time_steps, int)
+    #     for i in range(time_steps):
+    #         edges = [edge for edge in self.lat.edges if edge.measurement_time_step == i]  # noqa: E501
+    #         for edge in edges:
+    #             ancilla = edge.op.equbit_idx
+    #             dataqubit = edge.data.equbit_idx
+    #             match edge.factor:
+    #                 case codes.Pauli.X:
+    #                     self.apply_gate_and_error("CX", ancilla, dataqubit, with_errors)  # noqa: E501
+    #                 case codes.Pauli.Y:
+    #                     raise NotImplementedError("Pauli Y not implemented yet")
+    #                 case codes.Pauli.Z:
+    #                     self.apply_gate_and_error("CZ", ancilla, dataqubit, with_errors)  # noqa: E501
+    #     for op in self.lat.stabgens:
+    #         ancilla = op.equbit_idx
+    #         self.apply_gate_and_error("H", ancilla, None, with_errors)
+    #         if with_errors:
+    #             self.apply_measurement_error(op)
+    #         self.apply_gate_and_error("M", ancilla, None, with_errors)
+    # fmt: on
 
-        Args:
-            with_errors:
-                If ``False``, no error gates are added. (State preparation and
-                verification are currently performed without errors.)
-        """
-        time_steps = self.lat.n_time_steps
-        for op in self.lat.stabgens:
-            ancilla = op.equbit_idx
-            self.apply_gate_and_error("R", ancilla, None, with_errors)
-            self.apply_gate_and_error("H", ancilla, None, with_errors)
-        assert isinstance(time_steps, int)
-        for i in range(time_steps):
-            edges = [edge for edge in self.lat.edges if edge.measurement_time_step == i]
-            for edge in edges:
-                ancilla = edge.op.equbit_idx
-                dataqubit = edge.data.equbit_idx
-                match edge.factor:
-                    case lattice.Pauli.X:
-                        self.apply_gate_and_error("CX", ancilla, dataqubit, with_errors)
-                    case lattice.Pauli.Y:
-                        raise NotImplementedError("Pauli Y not implemented yet")
-                    case lattice.Pauli.Z:
-                        self.apply_gate_and_error("CZ", ancilla, dataqubit, with_errors)
-        for op in self.lat.stabgens:
-            ancilla = op.equbit_idx
-            self.apply_gate_and_error("H", ancilla, None, with_errors)
-            if with_errors:
-                self.apply_measurement_error(op)
-            self.apply_gate_and_error("M", ancilla, None, with_errors)
-
-    def get_circuit(self, logical_ops: str | Sequence[int]) -> circuit.Circuit:
+    def get_circuit(self, logical_ops: str) -> circuit.Circuit:
         """Build circuit for simulating QEC on the given error model.
 
         This function returns a circuit which can be simulated (see
         :mod:`plaquette.device`). If the circuit is simulated, it returns the
         sequence of measurement outcomes described in
-        :meth:`plaquette.device.AbstractSimulator.get_sample`.
+        :meth:`~plaquette.device.AbstractSimulator.get_sample`.
 
         Args:
             logical_ops: Specifies which logical operators should be measured before
-                and after the QEC simulation.
-
-                * E.g. ``XZ`` specifies logical ``X`` on the first and logical ``Z``
-                  on the second logical qubit.
-                * ``[0, 3]`` specifies the same as ``XZ`` because indices refer to
-                  ``logical_ops`` in :attr:`stabcode`.
-
-                For details, see
-                :meth:`plaquette.codes.StabilizerCode.logical_ops_to_indices`.
+                and after the QEC simulation. ``"XZ"`` specifies logical ``X`` on the
+                first and logical ``Z`` on the second logical qubits.
 
         Returns:
             A Clifford circuit (to be simulated with :mod:`plaquette.device`)
+
+        Raises:
+            ValueError: if an empty string is given, or if too many logical operators
+                are given.
         """
-        logop_indices = self.stabcode.logical_ops_to_indices(logical_ops)
-        # Check that different logical operators commute (if there is more than one).
-        # (Measuring e.g. X_1 and Z_2 is fine, but we want to prevent e.g.
-        # measuring X_1 and X_2.)
-        logical_ops_op = [self.stabcode.logical_ops[i] for i in logop_indices]
-        lcomm = commutator_sign(logical_ops_op, logical_ops_op)
-        if lcomm.any():
-            raise ValueError("Some measured logical operators do not commute")
+        if not logical_ops:
+            raise ValueError("at least one logical operator is necessary")
+        if len(logical_ops) > self.code.num_logical_qubits:
+            raise ValueError("logical operators exceed number of logical qubits")
+
+        logop_indices = list()
+        for i, logical_op in enumerate(logical_ops):
+            if logical_op == "X":
+                logop_indices.append(i)
+            elif logical_op == "Z":
+                logop_indices.append(i + self.code.num_logical_qubits)
+            else:
+                raise ValueError(f"logical operator {logical_op}{i} is invalid")
         # Measure logical operators for state preparation
         self.measure_logical_ops(logop_indices)
         # Measure stabilizer generators for state preparation (without errors)
         self.measure_stabgens(with_errors=False)
-        for _ in range(self.code.n_rounds - 1):
+        for _ in range(self.n_rounds - 1):
             # Apply data qubit errors
             self.apply_dataqubit_errors()
             # Measure one round of stabilizer generators
@@ -383,11 +386,11 @@ class QECCircuitGenerator:
 
 
 def generate_qec_circuit(
-    code: codes.LatticeCode,
+    code: codes.Code,
     qubit_errordata: QubitErrorsDict,
     gate_errordata: GateErrorsDict,
-    logical_ops: str | Sequence[int],
-    logical_ancilla: bool = False,
+    logical_ops: str,
+    n_rounds: int = 1,
 ) -> circuit.Circuit:
     """Shorthand for generating a circuit for QEC simulations.
 
@@ -407,36 +410,27 @@ def generate_qec_circuit(
         gate_errordata: Definition of the gate errors
         logical_ops: Specifies which logical operators should be measured before
             and after the QEC simulation.
-        logical_ancilla: Flag for alternative method to measure logical operators
-            via additional ancilla that is entangled with several physical qubits
-
-            * E.g. ``XZ`` specifies logical ``X`` on the first and logical ``Z``
-              on the second logical qubit.
-            * ``[0, 3]`` specifies the same as ``XZ`` because indices refer to
-              :attr:`~plaquette.codes.StabilizerCode.logical_ops`.
-
-            For details, see
-            :meth:`plaquette.codes.StabilizerCode.logical_ops_to_indices`.
+        n_rounds: number of measurement rounds
 
     Returns:
         A Clifford circuit (to be simulated with :mod:`plaquette.device`)
 
     This function is a shorthand for::
 
-       QECCircuitGenerator(code, errordata).get_circuit(logical_ops)
+       QECCircuitGenerator(code, errordata, n_rounds).get_circuit(logical_ops)
 
     See :attr:`QECCircuitGenerator.get_circuit` for a description of the measurement
     outcomes obtained if the circuit returned by this function is simulated.
 
     Example:
-        >>> from plaquette.codes import LatticeCode
+        >>> from plaquette import codes
         >>> from plaquette import errors
-        >>> c = LatticeCode.make_planar(n_rounds=1, size=3)
+        >>> c = codes.Code.make_planar(3)
         >>> qed = errors.QubitErrorsDict()
         >>> ged = errors.GateErrorsDict()
         >>> # The planar code has one logical qubit. We choose logical X.
         >>> log_ops = "X"
-        >>> circ = generate_qec_circuit(c, qed, ged, log_ops)
+        >>> circ = generate_qec_circuit(c, qed, ged, log_ops, 1)
         >>> print(type(circ))
         <class 'plaquette.circuit.Circuit'>
 
@@ -444,7 +438,5 @@ def generate_qec_circuit(
         example above does not define any errors, see :mod:`plaquette.errors` for that
         matter.
     """
-    circ_gen = QECCircuitGenerator(
-        code, qubit_errordata, gate_errordata, logical_ancilla
-    )
+    circ_gen = QECCircuitGenerator(code, qubit_errordata, gate_errordata, n_rounds)
     return circ_gen.get_circuit(logical_ops)

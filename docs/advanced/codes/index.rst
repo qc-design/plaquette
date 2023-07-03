@@ -26,13 +26,13 @@ Selecting a pre-defined code
 Selecting a pre-defined error correction code is accomplished with a
 single line.
 
->>> code = codes.LatticeCode.make_rotated_planar(n_rounds=1, size=4)
+>>> code = codes.Code.make_rotated_planar(3)
 >>> vis = visualizer.LatticeVisualizer(code)
 >>> vis.draw_lattice_mpl()
 
 .. figure:: predef.png
 
-   Planar code of size 4
+   Planar code of size 3
 
 An example usage of a predefined code can be found in the :doc:`/quickstart`.
 
@@ -44,12 +44,12 @@ All codes are made with the following snippet
 .. code-block::
    :emphasize-lines: 1
 
-   code = codes.LatticeCode.make_code(n_rounds=1, size=3)
+   code = codes.LatticeCode.make_code(3)
    vis = visualizer.LatticeVisualizer(code)
    vis.draw_lattice().show()
 
 where ``make_code`` is one of the available class-methods of
-:class:`.LatticeCode`. Additionally, these plots are snapshots of the
+:class:`.Code`. Additionally, these plots are snapshots of the
 interactive plotting backend of ``plaquette``, which uses
 `Plotly <https://plotly.com>`_ behind the scenes. It will open a new browser
 window with the plot if you are inside a script, otherwise it will show a
@@ -57,23 +57,23 @@ Jupyter widget if you're using a notebook.
 
 .. figure:: ./planar_code.png
 
-   Planar surface code (:meth:`.LatticeCode.make_planar`)
+   Planar surface code (:meth:`.Code.make_planar`)
 
 .. figure:: ./rotated_planar.png
 
-   Rotated planar surface code (:meth:`.LatticeCode.make_rotated_planar`)
+   Rotated planar surface code (:meth:`.Code.make_rotated_planar`)
 
 .. figure:: ./repetition.png
 
-   Repetition code (:meth:`.LatticeCode.make_repetition`)
+   Repetition code (:meth:`.Code.make_repetition`)
 
 .. figure:: ./five_qubit.png
 
-   The "five qubit" surface code (:meth:`.LatticeCode.make_five_qubit`)
+   The "five qubit" surface code (:meth:`.Code.make_five_qubit`)
 
-.. figure:: ./shor.png
+.. figure:: ./bacon_shor.png
 
-   Shor 9-qubit code (:meth:`.LatticeCode.make_shor`)
+   Shor 9-qubit code (:meth:`.Code.make_bacon_shor`)
 
 Basic code properties
 ---------------------
@@ -201,7 +201,7 @@ from scratch.
 
 We start by creating an instance of :class:`.CodeLattice`:
 
->>> from plaquette.codes import latticebase
+>>> from plaquette import codes
 >>> code_l = latticebase.CodeLattice((4, 4))
 
 Positions of vertices in the lattice are restricted to tuples of

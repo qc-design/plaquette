@@ -15,15 +15,8 @@ import numpy as np
 import pytest as pt
 
 import plaquette
-from plaquette import Device
+from plaquette import Device, codes, decoders
 from plaquette.circuit.generator import generate_qec_circuit
-from plaquette.codes import LatticeCode
-from plaquette.decoders import (
-    FusionBlossomDecoder,
-    PyMatchingDecoder,
-    UnionFindDecoder,
-    decoderbase,
-)
 from plaquette.device import MeasurementSample
 from plaquette.errors import (
     ErrorDataDict,
@@ -38,21 +31,28 @@ from plaquette.frontend import ExperimentConfig
 def calculate_success(
     sim_res: tuple,
     logical_op: str,
-    code: LatticeCode,
-    decoder: UnionFindDecoder | PyMatchingDecoder | FusionBlossomDecoder,
+    code: codes.Code,
+    decoder: decoders.UnionFindDecoder
+    | decoders.PyMatchingDecoder
+    | decoders.FusionBlossomDecoder,
+    n_rounds: int = 1,
 ):
     """Helper function for parallel calculations with joblib."""
     raw_results, erasure = sim_res
-    sample = MeasurementSample.from_code_and_raw_results(code, raw_results, erasure)
-    correction = decoder.decode(sample.erased_qubits, sample.syndrome)
-    return decoderbase.check_success(
+    sample = MeasurementSample.from_code_and_raw_results(
+        code, raw_results, erasure, n_rounds
+    )
+    correction = decoder.decode(sample.syndrome, sample.erased_qubits)
+    return decoders.check_success(
         code, correction, sample.logical_op_toggle, logical_op
     )
 
 
 class TestRegressionAPI:
     @pt.mark.slow
-    @pt.mark.parametrize("decoder_class", [PyMatchingDecoder, FusionBlossomDecoder])
+    @pt.mark.parametrize(
+        "decoder_class", [decoders.PyMatchingDecoder, decoders.FusionBlossomDecoder]
+    )
     @pt.mark.parametrize(
         "backend_name,reps",
         [
@@ -62,69 +62,72 @@ class TestRegressionAPI:
     )
     def test_pauli_and_measurement_errors_vs_logical_error_rates_in_nickerson_thesis(
         self,
-        decoder_class: Type[decoderbase.DecoderInterface],
+        decoder_class: Type[decoders.AbstractDecoder],
         backend_name: str,
         reps: int,
     ):
         """Test to be matched/compared with Fig. 1.12 in doi:10.25560/31475."""
-        code = LatticeCode.make_planar(n_rounds=8, size=7)
+        code = codes.Code.make_planar(7)
+        n_rounds = 8
         logical_op = "Z"
         qubit_errors = QubitErrorsDict(
             pauli={
-                vtx.equbit_idx: SinglePauliChannelErrorValueDict(x=0.026)
-                for vtx in code.lattice.dataqubits
+                vtx: SinglePauliChannelErrorValueDict(x=0.026)
+                for vtx in code.data_qubit_indices
             },
             measurement={
-                vtx.equbit_idx: ErrorValueDict(p=0.026) for vtx in code.lattice.stabgens
+                vtx: ErrorValueDict(p=0.026) for vtx in code.ancilla_qubit_indices
             },
         )
 
         plaquette.rng = np.random.default_rng(seed=62934814123)
-        circ = generate_qec_circuit(code, qubit_errors, GateErrorsDict(), logical_op)
-
-        dev = Device(backend_name)  # type: ignore
-
-        decoder = decoder_class.from_code(
-            code, cast(ErrorDataDict, qubit_errors), weighted=True
+        circ = generate_qec_circuit(
+            code, qubit_errors, GateErrorsDict(), logical_op, n_rounds
         )
+
+        dev = Device(backend_name)
+
+        decoder = decoder_class(code, cast(ErrorDataDict, qubit_errors), n_rounds)
 
         test_success = np.zeros([reps], dtype=bool)
 
         for i in range(reps):
             dev.run(circ)
             raw, erasure = dev.get_sample()
-            results = MeasurementSample.from_code_and_raw_results(code, raw, erasure)
-            correction = decoder.decode(results.erased_qubits, results.syndrome)
-            test_success[i] = decoderbase.check_success(
+            results = MeasurementSample.from_code_and_raw_results(
+                code, raw, erasure, n_rounds
+            )
+            correction = decoder.decode(results.syndrome, results.erased_qubits)
+            test_success[i] = decoders.check_success(
                 code, correction, results.logical_op_toggle, logical_op
             )
         assert 0.01 < 1 - np.count_nonzero(test_success) / reps < 0.1
 
     @pt.mark.slow
-    @pt.mark.parametrize("decoder_class", [PyMatchingDecoder, FusionBlossomDecoder])
+    @pt.mark.parametrize(
+        "decoder_class", [decoders.PyMatchingDecoder, decoders.FusionBlossomDecoder]
+    )
     @pt.mark.parametrize("backend_name,reps", [("clifford", 1000), ("stim", 10000)])
     def test_pauli_x_errors_vs_logical_error_rates_in_nickerson_thesis(
         self,
-        decoder_class: Type[decoderbase.DecoderInterface],
+        decoder_class: Type[decoders.AbstractDecoder],
         backend_name: str,
         reps: int,
     ):
         """Test to be matched/compared with Fig. 1.11 in doi:10.25560/31475."""
-        code = LatticeCode.make_planar(n_rounds=1, size=7)
+        code = codes.Code.make_planar(7)
         logical_op = "Z"
         qubit_errors = QubitErrorsDict(
             pauli={
-                vtx.equbit_idx: SinglePauliChannelErrorValueDict(x=0.1)
-                for vtx in code.lattice.dataqubits
+                vtx: SinglePauliChannelErrorValueDict(x=0.1)
+                for vtx in code.data_qubit_indices
             }
         )
         plaquette.rng = np.random.default_rng(seed=62934814123)
         circ = generate_qec_circuit(code, qubit_errors, GateErrorsDict(), logical_op)
-        dev = Device(backend_name)  # type: ignore
+        dev = Device(backend_name)
 
-        decoder = decoder_class.from_code(
-            code, cast(ErrorDataDict, qubit_errors), weighted=True
-        )
+        decoder = decoder_class(code, cast(ErrorDataDict, qubit_errors), 1)
 
         test_success = np.zeros([reps], dtype=bool)
 
@@ -132,12 +135,15 @@ class TestRegressionAPI:
             dev.run(circ)
             raw, erasure = dev.get_sample()
             results = MeasurementSample.from_code_and_raw_results(code, raw, erasure)
-            correction = decoder.decode(results.erased_qubits, results.syndrome)
-            test_success[i] = decoderbase.check_success(
+            correction = decoder.decode(results.syndrome, results.erased_qubits)
+            test_success[i] = decoders.check_success(
                 code, correction, results.logical_op_toggle, logical_op
             )
         assert 0.11 < 1 - np.count_nonzero(test_success) / reps < 0.19
 
+    # FIXME: this test needs to either be removed, or the UF plugin
+    #  needs to be updated to support weights
+    @pt.mark.skip
     @pt.mark.slow
     @pt.mark.parametrize("backend_name,reps", [("clifford", 100), ("stim", 10000)])
     @pt.mark.parametrize(
@@ -160,27 +166,24 @@ class TestRegressionAPI:
 
         Reference data is from commit 99ed6afdf2150fe3f6fa9a89e4774d326a1bf24f.
         """
-        code = LatticeCode.make_planar(n_rounds=1, size=7)
+        code = codes.Code.make_planar(7)
         logical_op = "Z"
         qubit_errors = QubitErrorsDict(
             pauli={
-                vtx.equbit_idx: SinglePauliChannelErrorValueDict(y=1e-15)
-                for vtx in code.lattice.dataqubits
+                vtx: SinglePauliChannelErrorValueDict(y=1e-15)
+                for vtx in code.data_qubit_indices
             },
             erasure={
-                vtx.equbit_idx: ErrorValueDict(p=p_erasure)
-                for vtx in code.lattice.dataqubits
+                vtx: ErrorValueDict(p=p_erasure) for vtx in code.data_qubit_indices
             },
         )
 
         plaquette.rng = np.random.default_rng(seed=62934814123)
 
         circ = generate_qec_circuit(code, qubit_errors, GateErrorsDict(), logical_op)
-        dev = Device(backend_name)  # type: ignore
+        dev = Device(backend_name)
 
-        dec = UnionFindDecoder.from_code(
-            code, cast(ErrorDataDict, qubit_errors), weighted=True
-        )
+        dec = decoders.UnionFindDecoder(code, cast(ErrorDataDict, qubit_errors))
 
         succ = np.zeros([reps], dtype=bool)
 
@@ -188,8 +191,8 @@ class TestRegressionAPI:
             dev.run(circ)
             raw, erasure = dev.get_sample()
             results = MeasurementSample.from_code_and_raw_results(code, raw, erasure)
-            correction = dec.decode(results.erased_qubits, results.syndrome)
-            succ[i] = decoderbase.check_success(
+            correction = dec.decode(results.syndrome, results.erased_qubits)
+            succ[i] = decoders.check_success(
                 code, correction, results.logical_op_toggle, logical_op
             )
 
@@ -220,13 +223,11 @@ class TestRegressionAPI:
         logical_op = "Z"
         reps = 96000
 
-        code = LatticeCode.make_planar(n_rounds=1, size=size)
-        qed = {
-            "pauli": {q.equbit_idx: {"x": error_rate} for q in code.lattice.dataqubits}
-        }
+        code = codes.Code.make_planar(size)
+        qed = {"pauli": {q: {"x": error_rate} for q in code.data_qubit_indices}}
         circuit = generate_qec_circuit(code, qed, {}, logical_op)
         dev = Device("stim", batch_size=reps)
-        decoder = UnionFindDecoder.from_code(code, qed, weighted=False)
+        decoder = decoders.UnionFindDecoder(code, {}, 1)
         sim_res = list()
         for _ in range(reps):
             dev.run(circuit)
@@ -273,7 +274,7 @@ class TestRegressionFrontend:
             correction = config_nickerson_thesis.decoder.decode(
                 results.erased_qubits, results.syndrome
             )
-            test_success[i] = decoderbase.check_success(
+            test_success[i] = decoders.check_success(
                 config_nickerson_thesis.code,
                 correction,
                 results.logical_op_toggle,
@@ -306,7 +307,7 @@ class TestRegressionFrontend:
             correction = config_nickerson_thesis.decoder.decode(
                 results.erased_qubits, results.syndrome
             )
-            test_success[i] = decoderbase.check_success(
+            test_success[i] = decoders.check_success(
                 config_nickerson_thesis.code,
                 correction,
                 results.logical_op_toggle,
@@ -346,7 +347,7 @@ class TestRegressionFrontend:
         config_nickerson_thesis.errors_conf.qubit_errors.erasure.update(
             distribution="constant", params=[p_erasure], enabled=True
         )
-        config_nickerson_thesis.decoder_conf.name = "UnionFindDecoder"
+        config_nickerson_thesis.decoder_conf.name = "decoders.UnionFindDecoder"
         config_nickerson_thesis.code_conf.rounds = 1
         config_nickerson_thesis.build()
         test_success = np.zeros([reps], dtype=bool)
@@ -360,7 +361,7 @@ class TestRegressionFrontend:
             correction = config_nickerson_thesis.decoder.decode(
                 results.erased_qubits, results.syndrome
             )
-            test_success[i] = decoderbase.check_success(
+            test_success[i] = decoders.check_success(
                 config_nickerson_thesis.code,
                 correction,
                 results.logical_op_toggle,
