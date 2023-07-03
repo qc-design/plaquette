@@ -64,6 +64,6 @@ There are additional optional backend methods and properties for certain backend
   maintain a ``self.n_qubits: int`` attribute to describe the number of qubits
   of the quantum circuit.
 
-Furthermore, all arguments and keyword arguments passed when creating a :class:`.Device` object are later passed to the underlying backend class. Therefore, methods and properties implemented in new backends may take custom arguments that can simply be passed when creating a device.
+Furthermore, when creating a :class:`.Device` object all additional arguments and keyword arguments are used to create the underlying backend object. Therefore, methods and properties implemented in new backends may take custom arguments that can simply be passed when creating a device.
 
 If you have any questions or suggestions related to creating new backends, feel free to open a `new GitHub issue <https://github.com/qc-design/plaquette/issues/new/choose>`_!
