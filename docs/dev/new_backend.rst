@@ -21,7 +21,7 @@ A new backend can be created via the following steps:
 
 1. Create a new backend class (we suggest naming the backend class such that it has ``Backend`` as a suffix in its name);
 2. Implement the set of required (and in addition the optional) backend methods and properties (as detailed below);
-3. Package your new device backend into a separate Python package;
+3. Package your new backend into a separate Python package;
 4. In the ``pyproject.toml`` file of the Python package
 
 The following section may be placed in the ``pyproject.toml`` file:
@@ -56,9 +56,11 @@ Remote backends may also implement the ``is_completed(self) -> List[bool]``
 property that determines which jobs have been completed for the list of jobs
 submitted using the device.
 
-Simulators that allow obtaining the underlying quantum state of the backend may
-also define the ``state`` property to access such a state.
+Simulator backends that allow obtaining the underlying quantum state may also
+either define a ``state(self) -> device.QuantumState`` property or maintain a
+``self.state: device.QuantumState`` attribute to allow :class:`.Device` access
+the quantum state.
 
 Furthermore, all arguments and keyword arguments passed to :class:`.Device` upon creation are later passed to the underlying backend object. Therefore, custom methods and properties may also be implemented in new backends that may take arguments passed at the time of creation.
 
-If you have any suggestions or questions related to creating new device backends, feel free to open a `new GitHub issue <https://github.com/qc-design/plaquette/issues/new/choose>`_!
+If you have any questions or suggestions related to creating new backends, feel free to open a `new GitHub issue <https://github.com/qc-design/plaquette/issues/new/choose>`_!
