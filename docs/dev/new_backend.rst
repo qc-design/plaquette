@@ -1,4 +1,4 @@
-.. Copyright 2023, QC Design GmbH and the plaquette contributors
+. Copyright 2023, QC Design GmbH and the plaquette contributors
    SPDX-License-Identifier: Apache-2.0
 
 
@@ -44,7 +44,7 @@ The set of required backend methods and their signatures are:
 
 .. code-block:: python
 
-    run(self, circuit: plaq_circuit.Circuit | plaq_circuit.CircuitBuilder, *,shots=1)
+    run(self, circuit: plaq_circuit.Circuit | plaq_circuit.CircuitBuilder, *, shots=1)
 
 * The ``get_sample`` method to return the samples **after a circuit run**.
 
