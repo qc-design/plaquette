@@ -344,8 +344,10 @@ Figure({...
 
 .. figure:: syn_ex2.png
 
-You may have noticed that here we have some single-qubit errors that only toggle one
-ancilla. We call these edges *dangling* edges, and we can add a new *virtual* vertex,
+Here another possible correction is by the Pauli operators Z_0 and Z_11. To describe 
+this correction in terms of the decoding graphs, we can add a virtual vertex to the 
+decoding graph. You may have also noticed that we can have some single-qubit errors 
+that only toggle one ancilla. We call these edges *dangling* edges, and we can add a new *virtual* vertex,
 which we can call an *open vertex*, and give it an index higher than the total amount
 of ancillas. By doing this, we can easily keep track of which one is the open vertex.
 The edge of the errors that toggle a single ancilla connect the vertex of the ancilla
@@ -426,8 +428,8 @@ Decoding algorithms
 Actually performing the decoding is the last and hardest step when protecting the information of a code. This
 process must be done quickly, faster than the emergence of new errors. It would be
 pointless to correct one error if, during the time required to do so, ten new errors
-appeared. Because of this, we need to automate this process. Because of this, a few
-decoding algorithms have been proposed.
+appeared. Because of this, we need to automate this process. A few decoding algorithms 
+have been proposed to automate this process.
 
 The decoding algorithms are, as their name suggests, algorithms that take as input the
 graph (or weighted graph) of the underlying structure of a code and a syndrome and give
@@ -596,33 +598,49 @@ This algorithm consists of two sub-algorithms:
   decoding graph as a subset of edges. Second, we remove edges from the erasure in
   such a way that the erasure sub-graph contains no loops (a path of edges that
   returns to a previously visited vertex). This loop-less graph, called a *forest*,
-  should contain as many edges from the original erasure as possible. This process
-  can be done by choosing a seed (if the code has an open boundary, then the open
-  vertices are first chosen as seeds), and *walking* through the erasure by adding
-  edges if only one of its vertices is already in the forest. If both vertices are
-  already in the forest, the edge is discarded. If a connected sub-graph is not
-  connected to an open vertex, we can choose randomly any of its vertices as the
-  seed. The figure below shows how the forest is created in a graph of a planar code
-  of distance :math:`4` (we are only showing the edges that represent :math:`Z`
-  errors for simplicity):
+  should contain as many edges from the original erasure as possible. For a connected 
+  sub-graph containing an open vertex (called a seed), the process is done by starting 
+  with a seed, then adding edges that reach new vertices (i.e., if both vertices are 
+  already in the forest, the edge is discarded) but also require that these newly reached 
+  vertices are not open vertices. If a connected sub-graph is not connected to an open vertex, 
+  we can choose randomly any of its vertices as the seed. The figure below shows how the forest
+  is created in a graph of a planar code of distance :math:`4` (we are only showing the edges 
+  that represent :math:`Z` errors for simplicity):
 
   .. image:: forest.png
      :width: 300px
 
-  Finally, the forest is peeled from its *leaves*. We call a *leaf* an edge that is
-  connected to the rest of the erasure through only one of its vertices, while the
-  other vertex, which we call *pendant vertex* is disconnected from the erasure.
+In the above figure a) Red lines indicate an erasure :math:`\mathcal{R}`, and red nodes indicate 
+the syndrome. b)-d) The process of constructing a forest, with open vertices as seeds. Arrows 
+indicate the direction the forest is grown. Green lines indicate edges included in the forest. 
+We discard those edges for which either both vertices of the edge are already in the forest or 
+if newly reached vertices (through this edge) is an open vertex.
 
-  When removing a leaf, if the pendant vertex **is not** a syndrome vertex, then we
-  continue and remove another leaf. If the pendant vertex **is** also a syndrome
-  vertex, then the edge is added to the correction operator. Then, the state of the
-  non-pendant vertex of the leaf is flipped: if the non-pendant vertex was a syndrome
-  vertex, then it will no longer be a syndrome vertex; if the non-pendant vertex
-  wasn't a syndrome vertex, it will now become a syndrome vertex. Below you can find
-  an example of how the peeling is performed, and how the correction is obtained.
+The peeling process is done by starting from the opposite direction the forest was constructed. 
+The forest is peeled from its *leaves*. A *leaf* is an edge, say {u, v}, which is connected to 
+the forest through only one of its vertices, say v. We call the vertex u as *pendant vertex*. 
+The peeling process is as follows:
+
+pick a leaf edge {u, v} with pendant vertex u, remove this leaf edge from the forest, and apply 
+these two rules:
+
+(1) If the pendant vertex u **is not** a syndrome vertex, then we do nothing.
+(2) If the pendant vertex u **is** a syndrome vertex, then this leaf edge {u, v} is added to the 
+correction operator, and the non-pendant vertex v of this leaf is flipped: i.e., if the non-pendant 
+vertex was a syndrome vertex, then it will no longer be a syndrome vertex; if the non-pendant vertex 
+wasn't a syndrome vertex, it will now become a syndrome vertex. Repeat this process until the forest 
+is empty, i.e., contains no edges. Below you can find an example of how the peeling is performed, and 
+how the correction is obtained.
 
   .. image:: peeling.png
      :width: 300px
+
+  In this figure, at the first step (t=1), we start with all pendant vertices and 
+  apply the above two rules to remove the leaf edges from the forest. In the second 
+  and third steps (t=2,3), we repeat the above process until the forest is empty. 
+  Here black tilted line on the edge means, the edge is removed from the forest. 
+  A Red tilted line on an edge indicates correction needs to be applied on that 
+  edge and the edge is removed from the forest.
 
   This decoding algorithm works only for erasures. The extra information regarding
   the location of the erasures is what gives this algorithm a linear complexity. One
